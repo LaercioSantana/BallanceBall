@@ -5,9 +5,15 @@
 #include <stdio.h>
 #include <limits>
 
+#define DISTANCE 1
+#define FORM 2
+
 using namespace cv;
 using namespace std;
 
+vector<Point> getContour(Mat image, Point p, int comparationType);
+void selectedColorHSV(Mat source, Mat& destination, Scalar color);
+void drawContour(Mat img, vector<Point> contour, Scalar externalColor);
 
 VideoCapture *cap; //capture the video from
 int iLowH = 95;
@@ -20,13 +26,17 @@ int iLowV = 60;
 int iHighV = 255;
 
 Scalar colorsRadius(10,50,50);
+Scalar colorSelected(108,162,151);
 
 long int frameCount = 0;
 long int lastTime;
 long int frameDuration;
 long int sampleCount = 0;
 
+//variables for comparation
 Point lastPoint(-1,-1);
+double lastArea = -1;
+vector<Point> object;
 
 char buffer[30];
 
@@ -36,6 +46,25 @@ long int currentTimeMillis(){
     return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
 
+vector<Scalar> getColorRangeHSV(Scalar color, Scalar colorsRadius){
+    Scalar low(0,0,0,0), high(0,0,0,0);
+
+    low[0] = color[0] - colorsRadius.val[0] > 0 ? color[0] - colorsRadius.val[0] : 0 ;
+    high[0] = color[0] + colorsRadius.val[0] < 179 ? color[0] + 10 : 179;
+
+    low[1] = color[1] - colorsRadius.val[1] > 0 ? color[1] - colorsRadius.val[1] : 0 ;
+    high[1] = color[1] + colorsRadius.val[1] < 255 ? color[1] + colorsRadius.val[1] : 255;
+
+    low[2] = color[2] - colorsRadius.val[2] > 0 ? color[2] - colorsRadius.val[2] : 0 ;
+    high[2] = color[2] + colorsRadius.val[2] < 255 ? color[2] + colorsRadius.val[2] : 255;
+
+    vector<Scalar> range;
+    range.push_back(low);
+    range.push_back(high);
+    
+    return range;
+}
+
 void setColorByPixel(Vec3b pixHSV){
 
     int H = pixHSV.val[0];
@@ -43,25 +72,34 @@ void setColorByPixel(Vec3b pixHSV){
     int V = pixHSV.val[2];
     //cout<<H<<":"<<S<<":"<<V<<endl;
 
-    iLowH = H - colorsRadius.val[0] > 0 ? H - colorsRadius.val[0] : 0 ;
+   /* iLowH = H - colorsRadius.val[0] > 0 ? H - colorsRadius.val[0] : 0 ;
     iHighH = H + colorsRadius.val[0] < 179 ? H + 10 : 179;
 
     iLowS = S - colorsRadius.val[1] > 0 ? S - colorsRadius.val[1] : 0 ;
     iHighS = S + colorsRadius.val[1] < 255 ? S + colorsRadius.val[1] : 255;
 
     iLowV = V - colorsRadius.val[2] > 0 ? V - colorsRadius.val[2] : 0 ;
-    iHighV = V + colorsRadius.val[2] < 255 ? V + colorsRadius.val[2] : 255;
+    iHighV = V + colorsRadius.val[2] < 255 ? V + colorsRadius.val[2] : 255;*/
 
-    //cout<<"color has selected <= "<<H<<":"<<S<<":"<<V<<endl; 
-    //cout<<iLowH<<":"<<iHighH<<endl;
-    //cout<<iLowS<<":"<<iHighS<<endl;
-    //cout<<iLowV<<":"<<iHighV<<endl;
+    colorSelected = Scalar(H, S, V);
+
+    cout<<"color has selected <= "<<colorSelected<<endl; 
+}
+void selectObject(Mat source, Point p){
+    Mat imgThresholded;
+   selectedColorHSV(source, imgThresholded, colorSelected);
+   object =  getContour(imgThresholded, p, DISTANCE);
+   //imgThresholded = Mat::zeros( source.size(), CV_8UC3 );
+  // drawContour(imgThresholded, object, Scalar(255,255,255));
+   //imshow("test", imgThresholded);
 }
 
 static void onMouse( int event, int x, int y, int f, void* ){
 
     if( event != CV_EVENT_LBUTTONDOWN )
         return;
+
+    lastPoint = Point(x,y);
 
     Mat imgOriginal;
     cap->read(imgOriginal);
@@ -70,23 +108,15 @@ static void onMouse( int event, int x, int y, int f, void* ){
     cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
     Vec3b pixHSV =imgHSV.at<Vec3b>(y,x);
 
-    setColorByPixel(pixHSV);
-
-    lastPoint = Point(x,y);
+    setColorByPixel(pixHSV);  
+    selectObject(imgOriginal, lastPoint);  
       
 }
 int showcontours(Mat image){
-    //image = imread("shape.JPG", 1);  
-    //namedWindow( windowsName, CV_WINDOW_AUTOSIZE );  
-    //imshow( "Display window", image );
-    
-    //Mat gray;
-    //cvtColor(image, gray, CV_BGR2GRAY);
-    //Canny(gray, gray, 100, 200, 3);
-    /// Find contours   
+
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
-    //RNG rng(12345);
+ 
     findContours( image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
     //cout<<"contours size:"<<contours.size()<<endl;
     /// Draw contours
@@ -103,9 +133,6 @@ int showcontours(Mat image){
         int posX = dM10 / dArea;
         int posY = dM01 / dArea;
 
-        //cout << "area:" << dArea<<endl;
-        //cout << "x:" << posX << "  y:" << posY << endl;
-        //Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
         Scalar color = Scalar(255,255,255);
         drawContours( drawing, contours, i, color, 2, 8, hierarchy, 0, Point() );
     }     
@@ -129,7 +156,7 @@ Point getCenter(vector<Point> contour){
 
     return Point(dM10 / dArea, dM01 / dArea);
 }
-vector<Point> getContour(Mat image, Point p){
+vector<Point> getContour(Mat image, Point p, int comparationType ){
     int contourSelected = 0;
     double distanceSelected = numeric_limits<double>::infinity();
     
@@ -144,14 +171,23 @@ vector<Point> getContour(Mat image, Point p){
 
     for( int i = 0; i< contours.size(); i++ )
     {
-        Point contourPosition;
-        contourPosition = getCenter(contours[i]);
-        double distance = norm(p - contourPosition); 
-        if( norm(distance) < norm(distanceSelected) ){
-            distanceSelected = distance;
-            contourSelected = i;
+        if(comparationType == DISTANCE){
+            Point contourPosition;
+            contourPosition = getCenter(contours[i]);
+            double distance = norm(p - contourPosition); 
+            if( norm(distance) < norm(distanceSelected) ){
+                distanceSelected = distance;
+                contourSelected = i;
+            }
         }
-
+        if(comparationType == FORM){
+            double distance = matchShapes(object, contours[i], CV_CONTOURS_MATCH_I1, 0);
+            cout<<"distance:"<< distance <<endl;
+            if( distance < distanceSelected ){
+                distanceSelected = distance;
+                contourSelected = i;
+            }            
+        }
         //cout << "area:" << dArea<<endl;
         //cout << "x:" << posX << "  y:" << posY << endl;
     }     
@@ -159,6 +195,28 @@ vector<Point> getContour(Mat image, Point p){
     //cout<<"selected:"<< contourSelected<<endl;                                      
     return contours[contourSelected];
 }
+
+void selectedColorHSV(Mat source, Mat& destination, Scalar color){
+    vector<Scalar> range;
+    range = getColorRangeHSV(color, colorsRadius);
+
+    Mat imgHSV;
+    cvtColor(source, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+    Mat imgThresholded;
+    inRange(imgHSV, range[0], range[1], imgThresholded); //Threshold the image
+
+    //morphological opening (removes small objects from the foreground)
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+
+    //morphological closing (removes small holes from the foreground)
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+
+    destination = imgThresholded;
+}
+
 int main( int argc, char** argv ){
     if(argc == 2)
         cap = new VideoCapture(argv[1]);
@@ -174,7 +232,7 @@ int main( int argc, char** argv ){
     namedWindow("Control", WINDOW_NORMAL); //create a window called "Control"
     //namedWindow("Show contours", WINDOW_NORMAL);
 
-    system("echo > temp");
+    system("echo > temp.dat");
     //Create trackbars in "Control" window
     // createTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
     // createTrackbar("HighH", "Control", &iHighH, 179);
@@ -212,21 +270,12 @@ int main( int argc, char** argv ){
         }
 
 
-        Mat imgHSV;
+       
+       Mat imgThresholded;
 
-        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+       selectedColorHSV(imgOriginal, imgThresholded, colorSelected);
 
-        Mat imgThresholded;
-
-        inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-
-        //morphological opening (removes small objects from the foreground)
-        erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-        dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-
-        //morphological closing (removes small holes from the foreground)
-        dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-        erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+       
 
         //Calculate the moments of the thresholded image
         //Moments oMoments = moments(imgThresholded);
@@ -234,7 +283,7 @@ int main( int argc, char** argv ){
         //double dM01 = oMoments.m01;
         //double dM10 = oMoments.m10;
         //double dArea = oMoments.m00;
-        vector<Point> contour = getContour(imgThresholded.clone(), lastPoint);
+        vector<Point> contour = getContour(imgThresholded.clone(), lastPoint, DISTANCE);
 
         if(contour.size() != 0){
 
@@ -242,7 +291,7 @@ int main( int argc, char** argv ){
             //cout<<"saasa"<<endl;
             Moments oMoments = moments(contour, false);
             double dArea = oMoments.m00;
-            //cout << "dArea: " << dArea << endl;
+            cout << "dArea: " << dArea << endl;
             // if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero
             if (dArea > 1)
             {
@@ -261,7 +310,7 @@ int main( int argc, char** argv ){
                     
                     //////Vec3b pixHSV =imgHSV.at<Vec3b>(center.y,center.x);
                     //////setColorByPixel(pixHSV);
-                    sprintf(buffer, "echo %ld %d >> temp", sampleCount++, center.x );
+                    sprintf(buffer, "echo %ld %d >> temp.dat", sampleCount++, center.x );
                     system(buffer);
 
                     
