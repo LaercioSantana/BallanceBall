@@ -4,9 +4,12 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <limits>
+#include <math.h>
+
 
 #define DISTANCE 1
 #define FORM 2
+#define PI 3.14159265
 
 using namespace cv;
 using namespace std;
@@ -16,17 +19,10 @@ void selectedColorHSV(Mat source, Mat& destination, Scalar color);
 void drawContour(Mat img, vector<Point> contour, Scalar externalColor);
 
 VideoCapture *cap; //capture the video from
-int iLowH = 95;
-int iHighH = 115;
-
-int iLowS = 150;
-int iHighS = 255;
-
-int iLowV = 60;
-int iHighV = 255;
 
 Scalar colorsRadius(10,50,50);
 Scalar colorSelected(108,162,151);
+vector<Scalar> limitsColors;
 
 long int frameCount = 0;
 long int lastTime;
@@ -35,8 +31,11 @@ long int sampleCount = 0;
 
 //variables for comparation
 Point lastPoint(-1,-1);
+vector<Point> lastPointLimits;
 double lastArea = -1;
 vector<Point> object;
+
+double realR = 0.6;
 
 char buffer[30];
 
@@ -65,51 +64,51 @@ vector<Scalar> getColorRangeHSV(Scalar color, Scalar colorsRadius){
     return range;
 }
 
-void setColorByPixel(Vec3b pixHSV){
+void setColorByPixel(Vec3b pixHSV, Scalar& color){
 
     int H = pixHSV.val[0];
     int S = pixHSV.val[1];
     int V = pixHSV.val[2];
-    //cout<<H<<":"<<S<<":"<<V<<endl;
 
-   /* iLowH = H - colorsRadius.val[0] > 0 ? H - colorsRadius.val[0] : 0 ;
-    iHighH = H + colorsRadius.val[0] < 179 ? H + 10 : 179;
-
-    iLowS = S - colorsRadius.val[1] > 0 ? S - colorsRadius.val[1] : 0 ;
-    iHighS = S + colorsRadius.val[1] < 255 ? S + colorsRadius.val[1] : 255;
-
-    iLowV = V - colorsRadius.val[2] > 0 ? V - colorsRadius.val[2] : 0 ;
-    iHighV = V + colorsRadius.val[2] < 255 ? V + colorsRadius.val[2] : 255;*/
-
-    colorSelected = Scalar(H, S, V);
+    color = Scalar(H, S, V);
 
     cout<<"color has selected <= "<<colorSelected<<endl; 
 }
-void selectObject(Mat source, Point p){
-    Mat imgThresholded;
+void selectObject(Mat source, vector<Point>& object,Point p, Scalar& colorSelected){
+   Mat imgHSV;
+   cvtColor(source, imgHSV, COLOR_BGR2HSV);
+
+   Vec3b pixHSV = imgHSV.at<Vec3b>(p.y,p.x);
+   setColorByPixel(pixHSV, colorSelected); 
+
+   cout << "color :::"<<colorSelected<<endl;
+   Mat imgThresholded;
    selectedColorHSV(source, imgThresholded, colorSelected);
    object =  getContour(imgThresholded, p, DISTANCE);
-   //imgThresholded = Mat::zeros( source.size(), CV_8UC3 );
-  // drawContour(imgThresholded, object, Scalar(255,255,255));
-   //imshow("test", imgThresholded);
 }
 
 static void onMouse( int event, int x, int y, int f, void* ){
 
-    if( event != CV_EVENT_LBUTTONDOWN )
+    if( event != CV_EVENT_LBUTTONDOWN && event != CV_EVENT_RBUTTONDOWN)
         return;
 
-    lastPoint = Point(x,y);
+    
 
     Mat imgOriginal;
     cap->read(imgOriginal);
 
-    Mat imgHSV;
-    cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
-    Vec3b pixHSV =imgHSV.at<Vec3b>(y,x);
 
-    setColorByPixel(pixHSV);  
-    selectObject(imgOriginal, lastPoint);  
+    if(event == CV_EVENT_LBUTTONDOWN){
+        lastPoint = Point(x,y);
+        selectObject(imgOriginal, object, Point(x,y), colorSelected);
+    } 
+    else if(event == CV_EVENT_RBUTTONDOWN){
+        vector<Point> limit;
+        lastPointLimits.push_back(Point(x,y));
+        Scalar color;
+        selectObject(imgOriginal, limit, Point(x,y), color);
+        limitsColors.push_back(color);  
+    } 
       
 }
 int showcontours(Mat image){
@@ -118,7 +117,6 @@ int showcontours(Mat image){
     vector<Vec4i> hierarchy;
  
     findContours( image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-    //cout<<"contours size:"<<contours.size()<<endl;
     /// Draw contours
     Mat drawing = Mat::zeros( image.size(), CV_8UC3 );
     for( int i = 0; i< contours.size(); i++ )
@@ -137,7 +135,6 @@ int showcontours(Mat image){
         drawContours( drawing, contours, i, color, 2, 8, hierarchy, 0, Point() );
     }     
 
-   // imshow("lsakd", image);
     imshow("Result window", drawing );                                         
     return 0;
 }
@@ -162,8 +159,7 @@ vector<Point> getContour(Mat image, Point p, int comparationType ){
     
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
-    findContours( image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-   // cout<<"contours size:"<<contours.size()<<endl;
+    findContours( image, contours, hierarchy, RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
     if(contours.size() < 1){
         return vector<Point>();
@@ -182,20 +178,40 @@ vector<Point> getContour(Mat image, Point p, int comparationType ){
         }
         if(comparationType == FORM){
             double distance = matchShapes(object, contours[i], CV_CONTOURS_MATCH_I1, 0);
-            cout<<"distance:"<< distance <<endl;
             if( distance < distanceSelected ){
                 distanceSelected = distance;
                 contourSelected = i;
             }            
         }
-        //cout << "area:" << dArea<<endl;
-        //cout << "x:" << posX << "  y:" << posY << endl;
     }     
 
-    //cout<<"selected:"<< contourSelected<<endl;                                      
     return contours[contourSelected];
 }
+vector< vector<Point> > getContours(Mat image, int quant){
+    vector< vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    Mat mask = Mat::zeros( image.size(), CV_8U ) + 255;
+    Point p(0,0);
 
+    Mat d;// = Mat::zeros(image.size(), CV_8U);
+
+    for(int i = 0; i < quant; i++){
+        contours.push_back(getContour(image.clone(), p, FORM));
+        drawContours(mask, contours, i, Scalar(0, 0, 0), CV_FILLED);
+
+        bitwise_and(image, image, d, mask);
+        image = d.clone();        
+    }
+
+    return contours;
+}
+
+void getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation){
+    Point r = l2 - l1;
+    o = (Mat(l1) + Mat(l2))/2;
+    double theta = atan2 (r.y,r.x);
+    rotation = (Mat_<double>(2,2) << cos(theta), sin(theta), -sin(theta), cos(theta));
+}
 void selectedColorHSV(Mat source, Mat& destination, Scalar color){
     vector<Scalar> range;
     range = getColorRangeHSV(color, colorsRadius);
@@ -216,7 +232,6 @@ void selectedColorHSV(Mat source, Mat& destination, Scalar color){
 
     destination = imgThresholded;
 }
-
 int main( int argc, char** argv ){
     if(argc == 2)
         cap = new VideoCapture(argv[1]);
@@ -229,30 +244,14 @@ int main( int argc, char** argv ){
         return -1;
     }
 
-    namedWindow("Control", WINDOW_NORMAL); //create a window called "Control"
-    //namedWindow("Show contours", WINDOW_NORMAL);
-
     system("echo > temp.dat");
-    //Create trackbars in "Control" window
-    // createTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
-    // createTrackbar("HighH", "Control", &iHighH, 179);
-
-    // createTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
-    // createTrackbar("HighS", "Control", &iHighS, 255);
-
-    // createTrackbar("LowV", "Control", &iLowV, 255);//Value (0 - 255)
-    // createTrackbar("HighV", "Control", &iHighV, 255);
-
-    //int iLastX = -1;
-    //int iLastY = -1;
-
 
     //Capture a temporary image from the camera
     Mat imgTmp;
     cap->read(imgTmp);
 
     //Create a black image with the size as the camera output
-    Mat imgLines = Mat::zeros( imgTmp.size(), CV_8UC3 );
+    Mat imgLines;
 
     while (true)
     {
@@ -260,8 +259,8 @@ int main( int argc, char** argv ){
 
         Mat imgOriginal;
         bool bSuccess = cap->read(imgOriginal); // read a new frame from video
+        imgLines = Mat::zeros( imgOriginal.size(), CV_8UC3 );
 
-       // cout<<"loop"<<endl;
 
         if (!bSuccess) //if not success, break loop
         {
@@ -271,76 +270,97 @@ int main( int argc, char** argv ){
 
 
        
-       Mat imgThresholded;
+        Mat imgThresholded;
 
-       selectedColorHSV(imgOriginal, imgThresholded, colorSelected);
+        selectedColorHSV(imgOriginal, imgThresholded, colorSelected);
+/////////////////////////////////////////////////////////////////////////////////
+        if(limitsColors.size() > 0){
 
-       
+            Mat colorLimitSelected;
+            vector<Point> contour;
+            Point center;
+            vector<Point> limits;
+            double radius = imgOriginal.size().width/15;
+            for(int i = 0; i < limitsColors.size() && i < 2; i++){
 
-        //Calculate the moments of the thresholded image
-        //Moments oMoments = moments(imgThresholded);
+                selectedColorHSV(imgOriginal, colorLimitSelected, limitsColors[i]);
+                contour = getContour(colorLimitSelected, lastPointLimits[i], DISTANCE);
+                center = getCenter(contour);
 
-        //double dM01 = oMoments.m01;
-        //double dM10 = oMoments.m10;
-        //double dArea = oMoments.m00;
+                if(norm(center - lastPointLimits[i]) < radius){
+                    lastPointLimits[i] = center;
+                }
+               
+                circle(imgLines, lastPointLimits[i], imgOriginal.cols/150, Scalar(255,0,0), -1, 4 , 0);
+            }            
+        }
+
+/////////////////////////////////////////////////////////////////////////////////
         vector<Point> contour = getContour(imgThresholded.clone(), lastPoint, DISTANCE);
 
         if(contour.size() != 0){
 
-            //drawContours( imgOriginal, contour, i, color, 2, 8, hierarchy, 0, Point() );
-            //cout<<"saasa"<<endl;
             Moments oMoments = moments(contour, false);
             double dArea = oMoments.m00;
-            cout << "dArea: " << dArea << endl;
-            // if the area <= 10000, I consider that the there are no object in the image and it's because of the noise, the area is not zero
             if (dArea > 1)
             {
-                //calculate the position of the ball
-               // int posX = dM10 / dArea;
-                //int posY = dM01 / dArea;
                 
                 Point center = getCenter(contour);
 
-                //cout << "contourSelected: " << center << endl;
                 if (lastPoint.x >= 0 && lastPoint.y >= 0 && center.x >= 0 && center.y >= 0)
                 {
-                    imgLines = Mat::zeros( imgTmp.size(), CV_8UC3 );
-                    //Draw a red line from the previous point to the current point
-                    //set new color
-                    
-                    //////Vec3b pixHSV =imgHSV.at<Vec3b>(center.y,center.x);
-                    //////setColorByPixel(pixHSV);
-                    sprintf(buffer, "echo %ld %d >> temp.dat", sampleCount++, center.x );
-                    system(buffer);
+                                        
+                    if(lastPointLimits.size() >= 2){
+                        Mat o, rotation;
+                        getNewCoor(lastPointLimits[0], lastPointLimits[1], o, rotation);
 
+                        Mat pnew = (Mat_<int>(2,1) << center.x, center.y);
+                        pnew = (pnew - o);
+                        pnew.convertTo(pnew, CV_64F);
+                        pnew = rotation * pnew;
+                        double x = pnew.at<double>(0,0);
+                        
+                        //write
+                        Point r = lastPointLimits[1] - lastPointLimits[0];
+                        char str[30];
+                        sprintf(str,"x: %0.3f m", x * (realR/r.x));
+                        putText(imgLines, str, center - Point(100,70), FONT_HERSHEY_SIMPLEX, 1,  Scalar(0,0,255), 3);
+
+                        circle(imgLines, Point(o) , imgTmp.cols/150, Scalar(0,255,0), -1, 4 , 0);
+
+                        sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, x * (realR/r.x) );
+                        system(buffer);
+
+                    }
                     
-                    
-                     drawContour( imgLines, contour, Scalar(0,0,255));
+                    drawContour( imgLines, contour, Scalar(0,0,255));
                     circle(imgLines, center, imgTmp.cols/150, Scalar(0,0,255), -1, 4 , 0);
                 }
 
-                //cout<<"lastPoint:"<<center<<endl;
                 lastPoint = center;
             }
         }
 
         imshow("Thresholded Image", imgThresholded); //show the thresholded image
-        //imshow("Resda", imgThresholded); //show the thresholded image
-        //showcontours(imgThresholded);
 
         imgOriginal = imgOriginal + imgLines;
         imshow("Original", imgOriginal); //show the original image
         setMouseCallback("Original", onMouse, 0 );
-        if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+        
+        int key = waitKey(10);
+        if ( key == 27) 
         {
             cout << "esc key is pressed by user" << endl;
-            break;
+            break;   
+        }
+        else if (key == 32) 
+        {
+            waitKey(0);
+           // break;   
         }
 
         //time 
         frameDuration = currentTimeMillis()-lastTime;
-        //cout<<"FPS:"<<1000/((double) frameDuration)<<endl;
-        //cout<<cap->get(CAP_PROP_FPS)<<endl;
         lastTime = currentTimeMillis();
 
         frameCount++;
@@ -349,6 +369,5 @@ int main( int argc, char** argv ){
 
     return 0;
 }
-
 
 

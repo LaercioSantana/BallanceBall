@@ -1,4 +1,4 @@
 #!/bin/bash
 
-./app ./img/rollingBeam1.mp4
+./bin/app $1
 octave plotSample.m
