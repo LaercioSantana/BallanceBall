@@ -5,22 +5,27 @@
 #include <stdio.h>
 #include <limits>
 #include <math.h>
+#include <stdlib.h>
+#include <unistd.h> 
 
 
 #define DISTANCE 1
 #define FORM 2
+#define DISTANCE_AND_FORM 3
 #define PI 3.14159265
 
 using namespace cv;
 using namespace std;
 
 vector<Point> getContour(Mat image, Point p, int comparationType);
-void selectedColorHSV(Mat source, Mat& destination, Scalar color);
+void selectedColorHSV(Mat sourceHSV, Mat& destination, Scalar color);
 void drawContour(Mat img, vector<Point> contour, Scalar externalColor);
 
 VideoCapture *cap; //capture the video from
 
-Scalar colorsRadius(10,50,50);
+FILE *file;
+
+Scalar colorsRadius(15,60,60);
 Scalar colorSelected(108,162,151);
 vector<Scalar> limitsColors;
 
@@ -72,7 +77,7 @@ void setColorByPixel(Vec3b pixHSV, Scalar& color){
 
     color = Scalar(H, S, V);
 
-    cout<<"color has selected <= "<<colorSelected<<endl; 
+    //cout<<"color has selected <= "<<color<<endl; 
 }
 void selectObject(Mat source, vector<Point>& object,Point p, Scalar& colorSelected){
    Mat imgHSV;
@@ -81,9 +86,8 @@ void selectObject(Mat source, vector<Point>& object,Point p, Scalar& colorSelect
    Vec3b pixHSV = imgHSV.at<Vec3b>(p.y,p.x);
    setColorByPixel(pixHSV, colorSelected); 
 
-   cout << "color :::"<<colorSelected<<endl;
    Mat imgThresholded;
-   selectedColorHSV(source, imgThresholded, colorSelected);
+   selectedColorHSV(imgHSV, imgThresholded, colorSelected);
    object =  getContour(imgThresholded, p, DISTANCE);
 }
 
@@ -135,7 +139,7 @@ int showcontours(Mat image){
         drawContours( drawing, contours, i, color, 2, 8, hierarchy, 0, Point() );
     }     
 
-    imshow("Result window", drawing );                                         
+    //imshow("Result window", drawing );                                         
     return 0;
 }
 void drawContour(Mat img, vector<Point> contour, Scalar externalColor){
@@ -212,15 +216,12 @@ void getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation){
     double theta = atan2 (r.y,r.x);
     rotation = (Mat_<double>(2,2) << cos(theta), sin(theta), -sin(theta), cos(theta));
 }
-void selectedColorHSV(Mat source, Mat& destination, Scalar color){
+void selectedColorHSV(Mat sourceHSV, Mat& destination, Scalar color){
     vector<Scalar> range;
     range = getColorRangeHSV(color, colorsRadius);
 
-    Mat imgHSV;
-    cvtColor(source, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-
     Mat imgThresholded;
-    inRange(imgHSV, range[0], range[1], imgThresholded); //Threshold the image
+    inRange(sourceHSV, range[0], range[1], imgThresholded); //Threshold the image
 
     //morphological opening (removes small objects from the foreground)
     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
@@ -233,6 +234,10 @@ void selectedColorHSV(Mat source, Mat& destination, Scalar color){
     destination = imgThresholded;
 }
 int main( int argc, char** argv ){
+
+    
+    file = fopen("/dev/ttyUSB0","w");  //Opening device file
+    
     if(argc == 2)
         cap = new VideoCapture(argv[1]);
     else
@@ -255,11 +260,11 @@ int main( int argc, char** argv ){
 
     while (true)
     {
+        frameCount++;
         lastTime = currentTimeMillis();
 
         Mat imgOriginal;
         bool bSuccess = cap->read(imgOriginal); // read a new frame from video
-        imgLines = Mat::zeros( imgOriginal.size(), CV_8UC3 );
 
 
         if (!bSuccess) //if not success, break loop
@@ -268,27 +273,28 @@ int main( int argc, char** argv ){
             break;
         }
 
-
+        imgLines = Mat::zeros( imgOriginal.size(), CV_8UC3 );
        
-        Mat imgThresholded;
-
-        selectedColorHSV(imgOriginal, imgThresholded, colorSelected);
+        Mat imgHSV;
+        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+ 
 /////////////////////////////////////////////////////////////////////////////////
         if(limitsColors.size() > 0){
 
             Mat colorLimitSelected;
             vector<Point> contour;
             Point center;
-            vector<Point> limits;
+            vector<Point> limitsNULL;
             double radius = imgOriginal.size().width/15;
             for(int i = 0; i < limitsColors.size() && i < 2; i++){
 
-                selectedColorHSV(imgOriginal, colorLimitSelected, limitsColors[i]);
+                selectedColorHSV(imgHSV, colorLimitSelected, limitsColors[i]);
                 contour = getContour(colorLimitSelected, lastPointLimits[i], DISTANCE);
                 center = getCenter(contour);
 
                 if(norm(center - lastPointLimits[i]) < radius){
                     lastPointLimits[i] = center;
+                    //selectObject(imgOriginal, limitsNULL, center, limitsColors[i]);
                 }
                
                 circle(imgLines, lastPointLimits[i], imgOriginal.cols/150, Scalar(255,0,0), -1, 4 , 0);
@@ -296,6 +302,8 @@ int main( int argc, char** argv ){
         }
 
 /////////////////////////////////////////////////////////////////////////////////
+        Mat imgThresholded;
+        selectedColorHSV(imgHSV, imgThresholded, colorSelected);
         vector<Point> contour = getContour(imgThresholded.clone(), lastPoint, DISTANCE);
 
         if(contour.size() != 0){
@@ -327,12 +335,17 @@ int main( int argc, char** argv ){
                         putText(imgLines, str, center - Point(100,70), FONT_HERSHEY_SIMPLEX, 1,  Scalar(0,0,255), 3);
 
                         circle(imgLines, Point(o) , imgTmp.cols/150, Scalar(0,255,0), -1, 4 , 0);
-
-                        sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, x * (realR/r.x) );
+                        double xReal = x * (realR/r.x);
+                        sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, xReal );
                         system(buffer);
+                        
+                        int angle = (int) ((xReal+0.3)*180/0.6);
+                        fprintf(file,"%d:%d$\n",angle, angle); //Writing to the 
+                        //printf("%d:%d$\n",angle, angle);
 
                     }
-                    
+                    //if(norm(lastPoint - center) < 20)
+                   //     selectObject(imgOriginal, object, center, colorSelected);
                     drawContour( imgLines, contour, Scalar(0,0,255));
                     circle(imgLines, center, imgTmp.cols/150, Scalar(0,0,255), -1, 4 , 0);
                 }
@@ -361,12 +374,12 @@ int main( int argc, char** argv ){
 
         //time 
         frameDuration = currentTimeMillis()-lastTime;
-        lastTime = currentTimeMillis();
 
-        frameCount++;
+
+        //cout<<"FPS: "<<((double) 1000/frameDuration)<<endl;
         
     }
-
+    fclose(file);
     return 0;
 }
 
