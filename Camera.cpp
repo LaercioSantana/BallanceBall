@@ -1,7 +1,7 @@
 #include "Camera.hpp"
 
 
-Camera::Camera(const string pathVideo, const string pathOutputData){
+Camera::Camera(const string pathVideo){
 	
     cap = new VideoCapture(pathVideo);
     
@@ -13,11 +13,10 @@ Camera::Camera(const string pathVideo, const string pathOutputData){
         return;
     }
 
-    remove(pathOutputData.c_str()); 
     initVariables();  
 }
 
-Camera::Camera(int webcamCode, const string pathOutputData){
+Camera::Camera(int webcamCode){
     cap = new VideoCapture(webcamCode);
    
 
@@ -28,7 +27,6 @@ Camera::Camera(int webcamCode, const string pathOutputData){
         return;
     }
 
-    remove(pathOutputData.c_str());  
     initVariables(); 
 }
 
@@ -43,10 +41,11 @@ Camera::initVariables(){
 	lastArea = -1;
 
 	realR = 0.6;
+    xReal = 0;
 }
 
 vector<Scalar> 
-Camera::getColorRangeHSV(Scalar color, Scalar colorsRadius){
+Camera::getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius){
     Scalar low(0,0,0,0), high(0,0,0,0);
 
     low[0] = color[0] - colorsRadius.val[0] > 0 ? color[0] - colorsRadius.val[0] : 0 ;
@@ -78,7 +77,7 @@ Camera::setColorByPixel(Vec3b pixHSV, Scalar& color){
 }
 
 void
-Camera::selectObject(Mat source, vector<Point>& object,Point p, Scalar& colorSelected){
+Camera::selectObject(const Mat& source, vector<Point>& object,Point p, Scalar& colorSelected){
    Mat imgHSV;
    cvtColor(source, imgHSV, COLOR_BGR2HSV);
 
@@ -115,7 +114,7 @@ Camera::onMouse( int event, int x, int y){
 }
 
 int
-Camera::showcontours(Mat image){
+Camera::showcontours(const Mat& image){
 
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
@@ -152,7 +151,7 @@ Camera::drawContour(Mat img, vector<Point> contour, Scalar externalColor){
 }
 
 Point
-Camera::getCenter(vector<Point> contour){
+Camera::getCenter(const vector<Point>& contour){
     Moments oMoments = moments(contour, false);
 
     double dM01 = oMoments.m01;
@@ -227,9 +226,8 @@ Camera::getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation){
 }
 
 void
-Camera::selectedColorHSV(Mat sourceHSV, Mat& destination, Scalar color){
-    vector<Scalar> range;
-    range = getColorRangeHSV(color, colorsRadius);
+Camera::selectedColorHSV(const Mat sourceHSV, Mat& destination, const Scalar color){
+    vector<Scalar> range = getColorRangeHSV(color, colorsRadius);
 
     Mat imgThresholded;
     inRange(sourceHSV, range[0], range[1], imgThresholded); //Threshold the image
@@ -309,7 +307,7 @@ Camera::update(){
                 if (lastPoint.x >= 0 && lastPoint.y >= 0 && center.x >= 0 && center.y >= 0)
                 {
                                         
-                    if(lastPointLimits.size() >= 2){
+                    if(isLimitsSelected()){
                         Mat o, rotation;
                         getNewCoor(lastPointLimits[0], lastPointLimits[1], o, rotation);
 
@@ -326,11 +324,11 @@ Camera::update(){
                         putText(imgLines, str, center - Point(100,70), FONT_HERSHEY_SIMPLEX, 1,  Scalar(0,0,255), 3);
 
                         circle(imgLines, Point(o) , imgOriginal.cols/150, Scalar(0,255,0), -1, 4 , 0);
-                        double xReal = x * (realR/r.x);
-                        sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, xReal );
-                        system(buffer);
+                        xReal = x * (realR/r.x);
+                        //sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, xReal );
+                        //system(buffer);
                         
-                        int angle = (int) ((xReal+0.3)*180/0.6);
+                       
                        // fprintf(file,"%d:%d$\n",angle, angle); //Writing to the 
                         //printf("%d:%d$\n",angle, angle);
 
@@ -345,7 +343,10 @@ Camera::update(){
             }
         }
 
-        imshow("Thresholded Image", imgThresholded); //show the thresholded image
+        //imshow("Thresholded Image", imgThresholded); //show the thresholded image
+        char str[10];
+        sprintf(str,"FPS: %0.1f ", (double) 1000/frameDuration);
+        putText(imgLines, str, Point(50,50), FONT_HERSHEY_SIMPLEX, 1,  Scalar(255,0,0), 3);
 
         imgOriginal = imgOriginal + imgLines;
         imshow("Original", imgOriginal); //show the original image
@@ -360,7 +361,7 @@ Camera::update(){
         else if (key == 32) 
         {
             waitKey(0);
-           return 0;// break;   
+          // return 0;// break;   
         }
 
         //time 
@@ -393,5 +394,13 @@ void
 Camera::onMouseStatic(int event, int x, int y, int, void* userdata){
     Camera* camera = reinterpret_cast<Camera*>(userdata);
     camera->onMouse(event, x, y);
-    cout<<"clicked"<<endl;
+}
+
+double Camera::getPosition(){
+    return xReal;
+}
+
+bool
+Camera::isLimitsSelected(){
+    return lastPointLimits.size() >= 2;
 }

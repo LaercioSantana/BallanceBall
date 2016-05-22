@@ -14,22 +14,21 @@
 #define DISTANCE 1
 #define FORM 2
 #define DISTANCE_AND_FORM 3
-#define PI 3.14159265
 
 using namespace cv;
 using namespace std;
 
 class Camera{
 public:
-	Camera(const string pathVideo, const string pathOutputData);
-	Camera(int webcamCode, const string pathOutputData);
-	Point getPosition();
+	Camera(const string pathVideo);
+	Camera(int webcamCode);
+	double getPosition();
 	int getFail();
 	string getErrorMessage();
 	int update();
+	bool isLimitsSelected();
 private:
 	VideoCapture *cap; //capture the video from
-	string pathOutputData;
 
 	int fail;
 	string errorMessage;
@@ -48,19 +47,21 @@ private:
 	double lastArea;
 	vector<Point> object;
 
+	double xReal;
+
 	double realR;
 	char buffer[30];
 
 	Mat imgLines;
 
 	void initVariables();
-	vector<Scalar> getColorRangeHSV(Scalar color, Scalar colorsRadius);
+	vector<Scalar> getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius);
 	void setColorByPixel(Vec3b pixHSV, Scalar& color);
-	void selectObject(Mat source, vector<Point>& object,Point p, Scalar& colorSelected);
+	void selectObject(const Mat& source, vector<Point>& object,Point p, Scalar& colorSelected);
 	void onMouse( int event, int x, int y);
-	int showcontours(Mat image);
+	int showcontours(const Mat& image);
 	void drawContour(Mat img, vector<Point> contour, Scalar externalColor);
-	Point getCenter(vector<Point> contour);
+	Point getCenter(const vector<Point>& contour);
 	vector<Point> getContour(Mat image, Point p, int comparationType );
 	vector< vector<Point> > getContours(Mat image, int quant);
 	void getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation);

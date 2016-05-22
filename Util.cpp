@@ -1,5 +1,4 @@
 #include "Util.hpp"
-#include <iostream>
 
 long int currentTimeMillis(){
     struct timeval tp;

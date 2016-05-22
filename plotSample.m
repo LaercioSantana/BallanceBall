@@ -2,7 +2,7 @@ i = 0;
 figure();
 
 while (1 > 0) 
-  [x,t] = textread('temp.dat',"%f %f");
+  [x,t] = textread('temp',"%f %f");
   %stem(x);
   %figure();
   plot(x);
