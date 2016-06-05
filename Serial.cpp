@@ -1,6 +1,8 @@
 #include "Serial.hpp"
 
-Serial::Serial(const string device){
+Serial::Serial(const string device):
+	path(device)
+{
 	serial = fopen(device.c_str(),"w");
 }
 
@@ -25,4 +27,14 @@ Serial::read(){
 void
 Serial::fflush(){
 	std::fflush(serial);
+}
+
+bool 
+Serial::getFail(){
+	return serial == NULL;
+}
+
+string
+Serial::getPath(){
+	return path;
 }

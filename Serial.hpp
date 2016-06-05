@@ -1,3 +1,6 @@
+#ifndef SERIAL_H
+#define SERIAL_H
+
 #include <cstdio>
 #include <iostream>
 #include <stdarg.h>
@@ -11,6 +14,11 @@ public:
 	void write(const string msg, ...);
 	string read();
 	void fflush();
+	bool getFail();
+	string getPath();
 private:
+	bool fail;
 	FILE *serial;
+	string path;
 };
+#endif

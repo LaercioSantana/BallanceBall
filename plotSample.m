@@ -1,8 +1,10 @@
+#! /usr/bin/octave -qf
+
 i = 0;
 figure();
 
 while (1 > 0) 
-  [x,t] = textread('temp',"%f %f");
+  [x,t] = textread('samples.dat',"%f %f");
   %stem(x);
   %figure();
   plot(x);

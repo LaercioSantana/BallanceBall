@@ -1,3 +1,5 @@
+#ifndef CAMERA_H     
+#define  CAMERA_H
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -14,6 +16,8 @@
 #define DISTANCE 1
 #define FORM 2
 #define DISTANCE_AND_FORM 3
+
+#define DEBUG
 
 using namespace cv;
 using namespace std;
@@ -65,7 +69,8 @@ private:
 	vector<Point> getContour(Mat image, Point p, int comparationType );
 	vector< vector<Point> > getContours(Mat image, int quant);
 	void getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation);
-	void selectedColorHSV(Mat sourceHSV, Mat& destination, Scalar color);
+	void selectedColorHSV(const Mat& sourceHSV, Mat& destination, Scalar color);
 	void setErrorMessage(const string errorMessage);
 	static void onMouseStatic(int event, int x, int y, int, void* userdata);
 };
+#endif

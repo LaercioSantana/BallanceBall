@@ -1,6 +1,5 @@
 #include "Camera.hpp"
 
-
 Camera::Camera(const string pathVideo){
 	
     cap = new VideoCapture(pathVideo);
@@ -42,6 +41,15 @@ Camera::initVariables(){
 
 	realR = 0.6;
     xReal = 0;
+
+    //init windows for improves speed and fix delay in first update call
+    Mat imgSample;
+    cap->read(imgSample);
+
+    imshow("Original", imgSample); //show the original image
+    #ifdef DEBUG
+    imshow("Thresholded Image", imgSample); //show the thresholded image
+    #endif
 }
 
 vector<Scalar> 
@@ -226,7 +234,7 @@ Camera::getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation){
 }
 
 void
-Camera::selectedColorHSV(const Mat sourceHSV, Mat& destination, const Scalar color){
+Camera::selectedColorHSV(const Mat& sourceHSV, Mat& destination, const Scalar color){
     vector<Scalar> range = getColorRangeHSV(color, colorsRadius);
 
     Mat imgThresholded;
@@ -333,8 +341,9 @@ Camera::update(){
                         //printf("%d:%d$\n",angle, angle);
 
                     }
-                    //if(norm(lastPoint - center) < 20)
-                   //     selectObject(imgOriginal, object, center, colorSelected);
+
+                    //if(norm(lastPoint - center) < 5)
+                       //selectObject(imgOriginal, object, center, colorSelected);
                     drawContour( imgLines, contour, Scalar(0,0,255));
                     circle(imgLines, center, imgOriginal.cols/150, Scalar(0,0,255), -1, 4 , 0);
                 }
@@ -342,8 +351,10 @@ Camera::update(){
                 lastPoint = center;
             }
         }
-
-        //imshow("Thresholded Image", imgThresholded); //show the thresholded image
+        
+#ifdef DEBUG
+        imshow("Thresholded Image", imgThresholded); //show the thresholded image
+#endif
         char str[10];
         sprintf(str,"FPS: %0.1f ", (double) 1000/frameDuration);
         putText(imgLines, str, Point(50,50), FONT_HERSHEY_SIMPLEX, 1,  Scalar(255,0,0), 3);
@@ -352,7 +363,11 @@ Camera::update(){
         imshow("Original", imgOriginal); //show the original image
         setMouseCallback("Original", onMouseStatic, this );
         
-        int key = waitKey(10);
+        //force fps
+        frameDuration = currentTimeMillis()-lastTime;
+        double correctFrameTime =  1/cap->get(CV_CAP_PROP_FPS);
+        int key = (correctFrameTime*1000 -  frameDuration) > 1 ?  waitKey( correctFrameTime * 1000 - frameDuration) : waitKey(1);
+        
         if ( key == 27) 
         {
             cout << "esc key is pressed by user" << endl;
@@ -364,15 +379,10 @@ Camera::update(){
           // return 0;// break;   
         }
 
-        //time 
-        frameDuration = currentTimeMillis()-lastTime;
-
-
         //cout<<"FPS: "<<((double) 1000/frameDuration)<<endl;
-        
-    
-    //fclose(file);
-    return 1;
+        frameDuration = currentTimeMillis() - lastTime;
+            
+        return 1;
 }
 
 void 
