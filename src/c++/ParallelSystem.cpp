@@ -10,7 +10,7 @@ ParallelSystem::ParallelSystem(vector<DynamicSystem*>& subSystems){
 
 int
 ParallelSystem::update(double input){
-	double output = 0;	
+	double output = 0;
 	for(int i = 0; i < subSystems.size();i++){
 		subSystems[i]->update(input);
 		output += subSystems[i]->getOutput();

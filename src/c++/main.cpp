@@ -1,6 +1,6 @@
 #include <math.h>
 #include <unistd.h>
-#include <iostream> 
+#include <iostream>
 #include <string>
 
 
@@ -52,7 +52,7 @@ int main( int argc, char** argv ){
 	 	c = new Camera(videoFile);
 	 else
 	 	c = new Camera(webcam);
-    
+
 	Serial s(sampleFile);
 	Serial arduino(arduinoDevice);
 	BallanceBallPlant plant(*c, arduino);
@@ -67,7 +67,7 @@ int main( int argc, char** argv ){
 
     }
 
-    
+
     return 0;
 }
 

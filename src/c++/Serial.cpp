@@ -42,7 +42,7 @@ Serial::fflush(){
 	std::fflush(serial);
 }
 
-bool 
+bool
 Serial::getFail(){
 	return serial == NULL;
 }

@@ -15,7 +15,7 @@ BallanceBallPlant::update(double input){
 	    #ifdef DEBUG
 	    	//cout<< camera.getPosition()<<endl;
         #endif
-		
+
 		if(!device.getFail()){
 			//cout << "input : " << input<< endl;
 			input += 90;

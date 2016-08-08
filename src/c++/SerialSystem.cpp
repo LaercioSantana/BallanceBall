@@ -17,7 +17,7 @@ SerialSystem::update(double input){
 		if(u == 0)
 			status = 0;
 	}
-	
+
 	setOutput(input);
 	return status;
 }

@@ -11,7 +11,7 @@ PID::PID(double kp, double ki, double kd):
 	lastInput(0),
 	dt(0.1)
 {
-	
+
 	setLimits(numeric_limits<double>::min(), numeric_limits<double>::max());
 }
 
@@ -40,18 +40,18 @@ PID::setTimeVariation(double dt){
 	this->dt = dt;
 }
 
-void 
+void
 PID::setLimits(double min, double max){
 	this->min = min;
 	this->max = max;
 }
 
-double 
+double
 PID::getMax(){
 	return this->max;
 }
 
-double 
+double
 PID::getMin(){
 	return this->max;
 }

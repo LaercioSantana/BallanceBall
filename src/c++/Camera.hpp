@@ -1,4 +1,4 @@
-#ifndef CAMERA_H     
+#ifndef CAMERA_H
 #define  CAMERA_H
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"
@@ -8,7 +8,7 @@
 #include <limits>
 #include <math.h>
 #include <stdlib.h>
-#include <unistd.h> 
+#include <unistd.h>
 #include <cstdio>
 
 #include "Util.hpp"
@@ -45,7 +45,7 @@ private:
 	long int lastTime;
 	long int frameDuration;
 	long int sampleCount;
-	
+
 	//for comparation
 	Point lastPoint;
 	vector<Point> lastPointLimits;

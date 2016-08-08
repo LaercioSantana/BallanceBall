@@ -4,6 +4,7 @@ OTHER_LIBS = -larmadillo
 CFLAGS = -w -g -O0 -std=c++11
 EXECUTABLE = ./bin/app
 MAIN = ./main.cpp
+SOURCES_PATH = ./src/c++
 SOURCES = ./Camera.cpp \
 		  ./Util.cpp \
 		  ./Serial.cpp\
@@ -25,7 +26,7 @@ all: $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS) $(OBJECTS_PATH)/main.o
 	$(CC) $(CFLAGS) -o $@ $^ $(OPENCV_LIB) $(OTHER_LIBS) 
 
-$(OBJECTS_PATH)/%.o: ./%.cpp
+$(OBJECTS_PATH)/%.o: $(SOURCES_PATH)/%.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 force:

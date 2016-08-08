@@ -1,8 +1,8 @@
 #include "CloseLoop.hpp"
 
 CloseLoop::CloseLoop(DynamicSystem* openLoopSystem):
-	openLoopSystem(openLoopSystem)	
-{	
+	openLoopSystem(openLoopSystem)
+{
 	setWeights(1,-1);
 }
 
@@ -14,12 +14,12 @@ CloseLoop::update(double reference){
 		//cout << "o: " << openLoopSystem->getOutput() << endl;
 
 		//cout << "i: " << 2 << endl;
-		
+
 		setOutput(openLoopSystem->getOutput());
 	}
 
 	int status = openLoopSystem->update(input);
-	
+
 	return status;
 }
 

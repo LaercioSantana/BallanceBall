@@ -1,6 +1,6 @@
 #include "GainSystem.hpp"
 
-GainSystem::GainSystem(double k): 
+GainSystem::GainSystem(double k):
 	k(k)
 {
 }

@@ -22,7 +22,7 @@ DifferentialEquation::DifferentialEquation(vector<double> outputCoeffs, vector<d
 
 void
 DifferentialEquation::updateBeta(){
-	int n = getOrder(); 
+	int n = getOrder();
 	for(int i = 0; i < n+1; i++){
 		beta[i] = inputCoeffs[i];
 		for(int j = i; j >= 1; j--)
@@ -33,7 +33,7 @@ DifferentialEquation::updateBeta(){
 int
 DifferentialEquation::update(double input){
 	if(false){
-		int n = getOrder(); 
+		int n = getOrder();
 		mat Y(&initialStates[0], n, 1, false);
 		mat BETA(&beta[0], n, 1, true);
 		X = Y - BETA * input;
@@ -44,7 +44,7 @@ DifferentialEquation::update(double input){
 
 	X = X + (A * X + B * input ) *  dt;
 	setOutput(X(0,0) + beta[0]);
-		
+
 	return 1;
 }
 
@@ -60,7 +60,7 @@ DifferentialEquation::set(vector<double> outputCoeffs, vector<double> inputCoeff
 	this->inputCoeffs = inputCoeffs;
 	updateBeta();
 
-	int n = getOrder(); 
+	int n = getOrder();
 
 	//make matrix A
 	A = mat(n, n, fill::zeros);
@@ -72,7 +72,7 @@ DifferentialEquation::set(vector<double> outputCoeffs, vector<double> inputCoeff
 	B = mat(&beta[1], n, 1, true);
 	//##need implements getStates from inital states
 	X = mat(n, 1, fill::zeros);
-	 
+
 
 	setOutput(0);
 

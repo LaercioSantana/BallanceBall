@@ -1,33 +1,34 @@
 #include "Camera.hpp"
 
-
 Camera::Camera(const string pathVideo){
-	
-    cap = new VideoCapture(pathVideo);
-    
 
+    cap = new VideoCapture(pathVideo);
+
+    fail = 0;
     if ( !cap->isOpened() )  // if not success, exit program
     {
-    	fail = true;
+    	fail = 1;
         setErrorMessage("Cannot open video file");
         return;
     }
 
-    initVariables();  
+    initVariables();
 }
 
 Camera::Camera(int webcamCode){
     cap = new VideoCapture(webcamCode);
-   
+    cap->set(CAP_PROP_FRAME_WIDTH,854);
+    cap->set(CAP_PROP_FRAME_HEIGHT,480);
 
+    fail = 0;
     if ( !cap->isOpened() )  // if not success, exit program
     {
-    	fail = true;
+    	fail = 1;
         setErrorMessage("Cannot open the web cam");
         return;
     }
 
-    initVariables(); 
+    initVariables();
 }
 
 void
@@ -42,9 +43,22 @@ Camera::initVariables(){
 
 	realR = 0.6;
     xReal = 0;
+
+    //init windows for improves speed and fix delay in first update call
+    Mat imgSample;
+    readImg(imgSample);
+    imgOriginal = imgSample;
+
+    #ifdef DEBUG
+    imshow("Thresholded Image", imgSample); //show the thresholded image
+    #endif
+    imshow("Original", imgSample); //show the original image
+
+
+    background = imgSample - imgSample;
 }
 
-vector<Scalar> 
+vector<Scalar>
 Camera::getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius){
     Scalar low(0,0,0,0), high(0,0,0,0);
 
@@ -60,7 +74,7 @@ Camera::getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius){
     vector<Scalar> range;
     range.push_back(low);
     range.push_back(high);
-    
+
     return range;
 }
 
@@ -73,7 +87,7 @@ Camera::setColorByPixel(Vec3b pixHSV, Scalar& color){
 
     color = Scalar(H, S, V);
 
-    //cout<<"color has selected <= "<<color<<endl; 
+    //cout<<"color has selected <= "<<color<<endl;
 }
 
 void
@@ -82,7 +96,7 @@ Camera::selectObject(const Mat& source, vector<Point>& object,Point p, Scalar& c
    cvtColor(source, imgHSV, COLOR_BGR2HSV);
 
    Vec3b pixHSV = imgHSV.at<Vec3b>(p.y,p.x);
-   setColorByPixel(pixHSV, colorSelected); 
+   setColorByPixel(pixHSV, colorSelected);
 
    Mat imgThresholded;
    selectedColorHSV(imgHSV, imgThresholded, colorSelected);
@@ -95,22 +109,22 @@ Camera::onMouse( int event, int x, int y){
     if( event != CV_EVENT_LBUTTONDOWN && event != CV_EVENT_RBUTTONDOWN)
         return;
 
-    
-    Mat imgOriginal;
-    cap->read(imgOriginal);
+
+    /*Mat imgOriginal;
+    readImg(imgOriginal);*/
 
 
     if(event == CV_EVENT_LBUTTONDOWN){
         lastPoint = Point(x,y);
         selectObject(imgOriginal, object, Point(x,y), colorSelected);
-    } 
+    }
     else if(event == CV_EVENT_RBUTTONDOWN){
         vector<Point> limit;
         lastPointLimits.push_back(Point(x,y));
         Scalar color;
         selectObject(imgOriginal, limit, Point(x,y), color);
-        limitsColors.push_back(color);  
-    }   
+        limitsColors.push_back(color);
+    }
 }
 
 int
@@ -118,7 +132,7 @@ Camera::showcontours(const Mat& image){
 
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
- 
+
     findContours( image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
     /// Draw contours
     Mat drawing = Mat::zeros( image.size(), CV_8UC3 );
@@ -136,9 +150,9 @@ Camera::showcontours(const Mat& image){
 
         Scalar color = Scalar(255,255,255);
         drawContours( drawing, contours, i, color, 2, 8, hierarchy, 0, Point() );
-    }     
+    }
 
-    //imshow("Result window", drawing );                                         
+    //imshow("Result window", drawing );
     return 0;
 }
 
@@ -165,7 +179,7 @@ vector<Point>
 Camera::getContour(Mat image, Point p, int comparationType ){
     int contourSelected = 0;
     double distanceSelected = numeric_limits<double>::infinity();
-    
+
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
     findContours( image, contours, hierarchy, RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
@@ -179,7 +193,7 @@ Camera::getContour(Mat image, Point p, int comparationType ){
         if(comparationType == DISTANCE){
             Point contourPosition;
             contourPosition = getCenter(contours[i]);
-            double distance = norm(p - contourPosition); 
+            double distance = norm(p - contourPosition);
             if( norm(distance) < norm(distanceSelected) ){
                 distanceSelected = distance;
                 contourSelected = i;
@@ -190,9 +204,9 @@ Camera::getContour(Mat image, Point p, int comparationType ){
             if( distance < distanceSelected ){
                 distanceSelected = distance;
                 contourSelected = i;
-            }            
+            }
         }
-    }     
+    }
 
     return contours[contourSelected];
 }
@@ -211,7 +225,7 @@ Camera::getContours(Mat image, int quant){
         drawContours(mask, contours, i, Scalar(0, 0, 0), CV_FILLED);
 
         bitwise_and(image, image, d, mask);
-        image = d.clone();        
+        image = d.clone();
     }
 
     return contours;
@@ -246,15 +260,13 @@ Camera::selectedColorHSV(const Mat& sourceHSV, Mat& destination, const Scalar co
 int
 Camera::update(){
 
-    
+
     //file = fopen("/dev/ttyUSB0","w");  //Opening device file
-    
+
         frameCount++;
         lastTime = currentTimeMillis();
 
-        Mat imgOriginal;
-        bool bSuccess = cap->read(imgOriginal); // read a new frame from video
-
+        bool bSuccess = readImg(imgOriginal); // read a new frame from video
 
         if (!bSuccess) //if not success, break loop
         {
@@ -263,10 +275,10 @@ Camera::update(){
         }
 
         imgLines = Mat::zeros( imgOriginal.size(), CV_8UC3 );
-       
+
         Mat imgHSV;
         cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
- 
+
 /////////////////////////////////////////////////////////////////////////////////
         if(limitsColors.size() > 0){
 
@@ -285,9 +297,9 @@ Camera::update(){
                     lastPointLimits[i] = center;
                     //selectObject(imgOriginal, limitsNULL, center, limitsColors[i]);
                 }
-               
+
                 circle(imgLines, lastPointLimits[i], imgOriginal.cols/150, Scalar(255,0,0), -1, 4 , 0);
-            }            
+            }
         }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -301,12 +313,12 @@ Camera::update(){
             double dArea = oMoments.m00;
             if (dArea > 1)
             {
-                
+
                 Point center = getCenter(contour);
 
                 if (lastPoint.x >= 0 && lastPoint.y >= 0 && center.x >= 0 && center.y >= 0)
                 {
-                                        
+
                     if(isLimitsSelected()){
                         Mat o, rotation;
                         getNewCoor(lastPointLimits[0], lastPointLimits[1], o, rotation);
@@ -316,7 +328,7 @@ Camera::update(){
                         pnew.convertTo(pnew, CV_64F);
                         pnew = rotation * pnew;
                         double x = pnew.at<double>(0,0);
-                        
+
                         //write
                         Point r = lastPointLimits[1] - lastPointLimits[0];
                         char str[30];
@@ -327,9 +339,9 @@ Camera::update(){
                         xReal = x * (realR/r.x);
                         //sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, xReal );
                         //system(buffer);
-                        
-                       
-                       // fprintf(file,"%d:%d$\n",angle, angle); //Writing to the 
+
+
+                       // fprintf(file,"%d:%d$\n",angle, angle); //Writing to the
                         //printf("%d:%d$\n",angle, angle);
 
                     }
@@ -344,7 +356,9 @@ Camera::update(){
             }
         }
 
+#ifdef DEBUG
         imshow("Thresholded Image", imgThresholded); //show the thresholded image
+#endif
         char str[10];
         sprintf(str,"FPS: %0.1f ", (double) 1000/frameDuration);
         putText(imgLines, str, Point(50,50), FONT_HERSHEY_SIMPLEX, 1,  Scalar(255,0,0), 3);
@@ -352,51 +366,52 @@ Camera::update(){
         imgOriginal = imgOriginal + imgLines;
         imshow("Original", imgOriginal); //show the original image
         setMouseCallback("Original", onMouseStatic, this );
-        
-        int key = waitKey(1);
-        if ( key == 27) 
+
+        //force fps
+        frameDuration = currentTimeMillis()-lastTime;
+        double correctFrameTime =  1/cap->get(CV_CAP_PROP_FPS);
+        int key = (correctFrameTime*1000 -  frameDuration) > 1 ?  waitKey( correctFrameTime * 1000 - frameDuration) : waitKey(1);
+
+        if ( key == 27)
         {
             cout << "esc key is pressed by user" << endl;
-            return 0;//break;   
+            return 0;//break;
         }
-        else if (key == 32) 
+        else if (key == 32)
         {
             waitKey(0);
-          // return 0;// break;   
+          // return 0;// break;
+        }
+        else if(key == 'b'){
+            //capture and save background
+            //cout<<CV_8UC3<<endl;
+            //cap->read(background);
+            //cout<<imgOriginal.type()<<endl;
         }
 
-        //time 
-        frameDuration = currentTimeMillis()-lastTime;
 
-        double correctFrameTime = (double) 1/cap->get(CV_CAP_PROP_FPS);
-        cout<< correctFrameTime*1000 -  frameDuration << endl;
-        if(correctFrameTime*1000 -  frameDuration  > 1)
-            waitKey((long) (correctFrameTime * 1000 - frameDuration));
-        
         //cout<<"FPS: "<<((double) 1000/frameDuration)<<endl;
-        frameDuration = currentTimeMillis()-lastTime;
-        
-    
-    //fclose(file);
-    return 1;
+        frameDuration = currentTimeMillis() - lastTime;
+
+        return 1;
 }
 
-void 
+void
 Camera::setErrorMessage(const string errorMessage){
 	this->errorMessage = errorMessage;
 }
 
-int 
+int
 Camera::getFail(){
 	return fail;
 }
 
-string 
+string
 Camera::getErrorMessage(){
 	return errorMessage;
 }
 
-void 
+void
 Camera::onMouseStatic(int event, int x, int y, int, void* userdata){
     Camera* camera = reinterpret_cast<Camera*>(userdata);
     camera->onMouse(event, x, y);
@@ -409,4 +424,29 @@ double Camera::getPosition(){
 bool
 Camera::isLimitsSelected(){
     return lastPointLimits.size() >= 2;
+}
+
+bool
+Camera::readImg(Mat& mat, bool removeBackground){
+    bool success = cap->read(mat);
+
+    if(removeBackground && success)
+        mat = mat - background;
+
+   // cout << background << endl;
+
+    return success;
+}
+
+bool
+Camera::removeBackground(Mat& img, const Mat& background){
+    int limit = img.rows * img.cols * img.channels();
+
+    uchar* ptr = reinterpret_cast<uchar*>(img.data);
+    for (int i = 0; i < limit; i++, ptr++)
+    {
+
+        //*ptr = table[*ptr];
+    }
+    return true;
 }
