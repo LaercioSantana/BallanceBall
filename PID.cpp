@@ -21,8 +21,9 @@ PID::update(double input){
 	lastInput = input;
 
 	sum += input * dt;
-	//cout<< input << " : " << sum << " : " << di << endl;
-	setOutput(kp * input + ki * sum + kp * (di));
+	cout << "kd: " << kd << endl;
+	cout<< "term p: " << (kp * input) << " term i: " << (ki * sum)  << " term d: " << kd * (di) << endl;
+	setOutput(kp * input + ki * sum + kd * (di));
 
 	return 1;
 }
