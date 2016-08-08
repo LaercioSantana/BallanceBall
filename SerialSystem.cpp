@@ -10,12 +10,16 @@ SerialSystem::SerialSystem(vector<DynamicSystem*>& subSystems){
 
 int
 SerialSystem::update(double input){
+	int status = 1;
 	for(int i = 0; i < subSystems.size();i++){
-		subSystems[i]->update(input);
+		int u = subSystems[i]->update(input);
 		input = subSystems[i]->getOutput();
+		if(u == 0)
+			status = 0;
 	}
 	
 	setOutput(input);
+	return status;
 }
 
 bool

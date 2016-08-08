@@ -8,14 +8,19 @@ CloseLoop::CloseLoop(DynamicSystem* openLoopSystem):
 
 int
 CloseLoop::update(double reference){
+	double input = 0;
 	if(openLoopSystem->outputAvailable()){
-		double input =  reference - openLoopSystem->getOutput();
-		//cout << "i: " << input << endl;
+		input =  reference - openLoopSystem->getOutput();
 		//cout << "o: " << openLoopSystem->getOutput() << endl;
+
+		//cout << "i: " << 2 << endl;
 		
-		openLoopSystem->update(input);
 		setOutput(openLoopSystem->getOutput());
 	}
+
+	int status = openLoopSystem->update(input);
+	
+	return status;
 }
 
 bool
