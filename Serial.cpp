@@ -3,7 +3,17 @@
 Serial::Serial(const string device):
 	path(device)
 {
-	serial = fopen(device.c_str(),"w");
+	serial = fopen(device.c_str(),"w+");
+	if(serial == NULL)
+		cout << "Can't open file: " << device.c_str() << endl;
+}
+
+Serial::Serial(const string device, const string mode):
+	path(device)
+{
+	serial = fopen(device.c_str(), mode.c_str());
+	if(serial == NULL)
+		cout << "Can't open file: " << device.c_str() << endl;
 }
 
 Serial::~Serial(){
@@ -19,9 +29,12 @@ Serial::write(const string format, ...){
 	va_end (ap);
 }
 
-string
-Serial::read(){
-	return "";
+void
+Serial::read(const string format, ...){
+	va_list ap;
+	va_start (ap, format.c_str());
+	vfscanf(serial,format.c_str(), ap);
+	va_end (ap);
 }
 
 void

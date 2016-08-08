@@ -10,15 +10,16 @@ using namespace std;
 class Serial{
 public:
 	Serial(const string device);
+	Serial(const string device, const string mode);
 	~Serial();
 	void write(const string msg, ...);
-	string read();
+	void read(const string format, ...);
 	void fflush();
 	bool getFail();
 	string getPath();
+	FILE *serial;
 private:
 	bool fail;
-	FILE *serial;
 	string path;
 };
 #endif
