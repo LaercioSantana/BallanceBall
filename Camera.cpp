@@ -4,10 +4,10 @@ Camera::Camera(const string pathVideo){
 	
     cap = new VideoCapture(pathVideo);
     
-
+    fail = 0;
     if ( !cap->isOpened() )  // if not success, exit program
     {
-    	fail = true;
+    	fail = 1;
         setErrorMessage("Cannot open video file");
         return;
     }
@@ -17,11 +17,13 @@ Camera::Camera(const string pathVideo){
 
 Camera::Camera(int webcamCode){
     cap = new VideoCapture(webcamCode);
+    cap->set(CAP_PROP_FRAME_WIDTH,854);
+    cap->set(CAP_PROP_FRAME_HEIGHT,480);
    
-
+    fail = 0;
     if ( !cap->isOpened() )  // if not success, exit program
     {
-    	fail = true;
+    	fail = 1;
         setErrorMessage("Cannot open the web cam");
         return;
     }
@@ -44,12 +46,16 @@ Camera::initVariables(){
 
     //init windows for improves speed and fix delay in first update call
     Mat imgSample;
-    cap->read(imgSample);
+    readImg(imgSample);
+    imgOriginal = imgSample;
 
-    imshow("Original", imgSample); //show the original image
     #ifdef DEBUG
     imshow("Thresholded Image", imgSample); //show the thresholded image
     #endif
+    imshow("Original", imgSample); //show the original image
+
+
+    background = imgSample - imgSample;
 }
 
 vector<Scalar> 
@@ -104,8 +110,8 @@ Camera::onMouse( int event, int x, int y){
         return;
 
     
-    Mat imgOriginal;
-    cap->read(imgOriginal);
+    /*Mat imgOriginal;
+    readImg(imgOriginal);*/
 
 
     if(event == CV_EVENT_LBUTTONDOWN){
@@ -260,10 +266,8 @@ Camera::update(){
         frameCount++;
         lastTime = currentTimeMillis();
 
-        Mat imgOriginal;
-        bool bSuccess = cap->read(imgOriginal); // read a new frame from video
-
-
+        bool bSuccess = readImg(imgOriginal); // read a new frame from video
+        
         if (!bSuccess) //if not success, break loop
         {
             cout << "Cannot read a frame from video stream" << endl;
@@ -378,6 +382,13 @@ Camera::update(){
             waitKey(0);
           // return 0;// break;   
         }
+        else if(key == 'b'){
+            //capture and save background
+            //cout<<CV_8UC3<<endl;
+            //cap->read(background);
+            //cout<<imgOriginal.type()<<endl;
+        }
+
 
         //cout<<"FPS: "<<((double) 1000/frameDuration)<<endl;
         frameDuration = currentTimeMillis() - lastTime;
@@ -413,4 +424,29 @@ double Camera::getPosition(){
 bool
 Camera::isLimitsSelected(){
     return lastPointLimits.size() >= 2;
+}
+
+bool
+Camera::readImg(Mat& mat, bool removeBackground){
+    bool success = cap->read(mat);
+    
+    if(removeBackground && success)
+        mat = mat - background;
+    
+   // cout << background << endl;
+    
+    return success;
+}
+
+bool
+Camera::removeBackground(Mat& img, const Mat& background){
+    int limit = img.rows * img.cols * img.channels();
+
+    uchar* ptr = reinterpret_cast<uchar*>(img.data);
+    for (int i = 0; i < limit; i++, ptr++)
+    {
+        
+        //*ptr = table[*ptr];
+    }
+    return true;
 }

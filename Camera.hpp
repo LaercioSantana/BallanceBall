@@ -3,6 +3,7 @@
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/video/background_segm.hpp>
 #include <stdio.h>
 #include <limits>
 #include <math.h>
@@ -17,7 +18,7 @@
 #define FORM 2
 #define DISTANCE_AND_FORM 3
 
-#define DEBUG
+//#define DEBUG
 
 using namespace cv;
 using namespace std;
@@ -57,6 +58,10 @@ private:
 	char buffer[30];
 
 	Mat imgLines;
+	Mat imgOriginal;
+
+	Mat background;
+	Ptr<BackgroundSubtractor> pMOG;
 
 	void initVariables();
 	vector<Scalar> getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius);
@@ -72,5 +77,7 @@ private:
 	void selectedColorHSV(const Mat& sourceHSV, Mat& destination, Scalar color);
 	void setErrorMessage(const string errorMessage);
 	static void onMouseStatic(int event, int x, int y, int, void* userdata);
+	bool readImg(Mat& mat, bool removeBackground=true);
+	bool removeBackground(Mat& img, const Mat& background);
 };
 #endif
