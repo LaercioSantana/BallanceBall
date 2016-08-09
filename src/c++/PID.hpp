@@ -4,6 +4,7 @@
 
 #include "DynamicSystem.hpp"
 #include <limits>
+#include <math.h>
 
 using namespace std;
 
