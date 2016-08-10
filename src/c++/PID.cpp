@@ -62,3 +62,12 @@ double
 PID::getMin(){
 	return this->min;
 }
+
+double
+PID::get(string k){
+	if(k == "kp")
+		return this->kp;
+	if(k == "ki")
+		return this->ki;
+	return this->kd; 
+}

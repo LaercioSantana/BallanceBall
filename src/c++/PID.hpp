@@ -5,6 +5,7 @@
 #include "DynamicSystem.hpp"
 #include <limits>
 #include <math.h>
+#include <string>
 
 using namespace std;
 
@@ -17,6 +18,7 @@ public:
 	void setTimeVariation(double dt);
 	double getMax();
 	double getMin();
+	double get(string k);	
 private:
 	double kp;
 	double ki;
