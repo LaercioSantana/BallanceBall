@@ -2,7 +2,8 @@
 
 BallanceBallPlant::BallanceBallPlant(const Camera& camera, const Serial& device):
   camera(camera),
-  device(device)
+  device(device),
+  originAngle(90), maxAngle(180), minAngle(0)
 {
 }
 
@@ -12,20 +13,14 @@ BallanceBallPlant::update(double input){
         return 0;
 
 	if(camera.isLimitsSelected()){
-	    #ifdef DEBUG
-	    	//cout<< camera.getPosition()<<endl;
-        #endif
-
 		if(!device.getFail()){
-			//cout << "input : " << input<< endl;
-			input += 90;
-			if(input > 180)
-				input = 180;
-			else if(input < 0)
-				input = 0;
+			input += this->originAngle;
+			if(input > this->maxAngle)
+				input = this->maxAngle;
+			else if(input < this->minAngle)
+				input = this->minAngle;
 
-	        device.write("%d:\n", (int) input );
-	       // cout << (int) input << endl;
+			device.write("%d:\n", (int) input );
 		}
 
 		setOutput(camera.getPosition());
@@ -37,4 +32,35 @@ BallanceBallPlant::update(double input){
 bool
 BallanceBallPlant::outputAvailable(){
 	return camera.isLimitsSelected();
+}
+
+void
+BallanceBallPlant::setOriginAngle(int value){
+	if(value < this->maxAngle && value > this->minAngle)
+		this->originAngle = value;
+}
+
+int
+BallanceBallPlant::getOriginAngle(){
+	return this->originAngle;
+}
+
+void
+BallanceBallPlant::setMaxAngle(int value){
+	this->maxAngle = value;
+}
+
+int
+BallanceBallPlant::getMaxAngle(){
+	return this->maxAngle;
+}
+
+void
+BallanceBallPlant::setMinAngle(int value){
+	this->minAngle = value;
+}
+
+int
+BallanceBallPlant::getMinAngle(){
+	return this->minAngle;
 }

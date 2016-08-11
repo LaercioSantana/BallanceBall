@@ -10,8 +10,17 @@ public:
 	BallanceBallPlant(const Camera& camera, const Serial& device);
 	int update(double input);
 	bool outputAvailable();
+	void setOriginAngle(int value);
+	int getOriginAngle();
+	void setMaxAngle(int value);
+	int getMaxAngle();
+	void setMinAngle(int value);
+	int getMinAngle();
 private:
 	Camera camera;
 	Serial device;
+	int originAngle;
+	int maxAngle;
+	int minAngle;
 };
 #endif
