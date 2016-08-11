@@ -1,4 +1,5 @@
 #include "Camera.hpp"
+#define DEBUG
 
 Camera::Camera(const string pathVideo){
 
@@ -30,7 +31,13 @@ Camera::Camera(int webcamCode){
 
     initVariables();
 }
-
+#ifdef DEBUG
+void
+Camera::onTrackDebug(int p, void* data){
+  double* colorsRadius = (double*) data;
+  *colorsRadius = p;
+}
+#endif
 void
 Camera::initVariables(){
 	colorsRadius = Scalar(15,60,60);
@@ -49,10 +56,16 @@ Camera::initVariables(){
     readImg(imgSample);
     imgOriginal = imgSample;
 
+    imshow("Original", imgSample); //show the original image
     #ifdef DEBUG
     imshow("Thresholded Image", imgSample); //show the thresholded image
+    createTrackbar("H radius", "Original", NULL, 179, Camera::onTrackDebug, (void*) &colorsRadius[0]);
+    setTrackbarPos("H radius", "Original", (int) colorsRadius[0]);
+    createTrackbar("S radius", "Original", NULL, 255, Camera::onTrackDebug, (void*) &colorsRadius[1]);
+    setTrackbarPos("S radius", "Original", (int) colorsRadius[1]);
+    createTrackbar("V radius", "Original", NULL, 255, Camera::onTrackDebug, (void*) &colorsRadius[2]);
+    setTrackbarPos("V radius", "Original", (int) colorsRadius[2]);
     #endif
-    imshow("Original", imgSample); //show the original image
 
 
     background = imgSample - imgSample;
@@ -63,7 +76,7 @@ Camera::getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius){
     Scalar low(0,0,0,0), high(0,0,0,0);
 
     low[0] = color[0] - colorsRadius.val[0] > 0 ? color[0] - colorsRadius.val[0] : 0 ;
-    high[0] = color[0] + colorsRadius.val[0] < 179 ? color[0] + 10 : 179;
+    high[0] = color[0] + colorsRadius.val[0] < 179 ? color[0] + colorsRadius.val[0] : 179;
 
     low[1] = color[1] - colorsRadius.val[1] > 0 ? color[1] - colorsRadius.val[1] : 0 ;
     high[1] = color[1] + colorsRadius.val[1] < 255 ? color[1] + colorsRadius.val[1] : 255;
@@ -87,7 +100,9 @@ Camera::setColorByPixel(Vec3b pixHSV, Scalar& color){
 
     color = Scalar(H, S, V);
 
-    //cout<<"color has selected <= "<<color<<endl;
+    #ifdef DEBUG
+    cout<<"color has selected <= "<<color<<endl;
+    #endif
 }
 
 void

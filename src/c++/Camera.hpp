@@ -32,6 +32,7 @@ public:
 	string getErrorMessage();
 	int update();
 	bool isLimitsSelected();
+	static void onTrackDebug(int p, void* data);
 private:
 	VideoCapture *cap; //capture the video from
 
