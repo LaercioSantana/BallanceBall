@@ -21,8 +21,6 @@ PID::update(double input){
 	lastInput = input;
 
 	sum += input * dt;
-	//cout << "kd: " << kd << endl;
-	cout<< "term p: " << (kp * input) << " term i: " << (ki * sum)  << " term d: " << kd * (di) << endl;
 	
 	double output = kp * input + ki * sum + kd * (di);
 	if(output > getMax())

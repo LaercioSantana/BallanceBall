@@ -11,9 +11,6 @@ CloseLoop::update(double reference){
 	double input = 0;
 	if(openLoopSystem->outputAvailable()){
 		input =  reference - openLoopSystem->getOutput();
-		//cout << "o: " << openLoopSystem->getOutput() << endl;
-
-		//cout << "i: " << 2 << endl;
 
 		setOutput(openLoopSystem->getOutput());
 	}
