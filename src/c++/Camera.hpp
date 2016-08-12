@@ -3,6 +3,7 @@
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/video.hpp>
 #include <opencv2/video/background_segm.hpp>
 #include <stdio.h>
 #include <limits>
@@ -17,8 +18,10 @@
 #define DISTANCE 1
 #define FORM 2
 #define DISTANCE_AND_FORM 3
+#define WITH_HELPER 4
 
 //#define DEBUG
+//#define DEBUG_BACKGROUND
 
 using namespace cv;
 using namespace std;
@@ -61,8 +64,7 @@ private:
 	Mat imgLines;
 	Mat imgOriginal;
 
-	Mat background;
-	Ptr<BackgroundSubtractor> pMOG;
+	Ptr<BackgroundSubtractor> pMOG2;
 
 	void initVariables();
 	vector<Scalar> getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius);
@@ -72,13 +74,14 @@ private:
 	int showcontours(const Mat& image);
 	void drawContour(Mat img, vector<Point> contour, Scalar externalColor);
 	Point getCenter(const vector<Point>& contour);
-	vector<Point> getContour(Mat image, Point p, int comparationType );
+	vector<Point> getContour(Mat image, Point p, int comparationType);
 	vector< vector<Point> > getContours(Mat image, int quant);
 	void getNewCoor(Point l1, Point l2, Mat& o, Mat& rotation);
 	void selectedColorHSV(const Mat& sourceHSV, Mat& destination, Scalar color);
 	void setErrorMessage(const string errorMessage);
 	static void onMouseStatic(int event, int x, int y, int, void* userdata);
-	bool readImg(Mat& mat, bool removeBackground=true);
+	bool readImg(Mat& mat, bool removeBackground=false, double rate=0);
 	bool removeBackground(Mat& img, const Mat& background);
+	void updateBackgroundModel(double rate=1);
 };
 #endif

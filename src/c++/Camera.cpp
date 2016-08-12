@@ -1,5 +1,4 @@
 #include "Camera.hpp"
-#define DEBUG
 
 Camera::Camera(const string pathVideo){
 
@@ -40,22 +39,22 @@ Camera::onTrackDebug(int p, void* data){
 #endif
 void
 Camera::initVariables(){
-	colorsRadius = Scalar(15,60,60);
-	colorSelected = Scalar(108,162,151);
+    colorsRadius = Scalar(15,60,60);
+    colorSelected = Scalar(108,162,151);
 
-	frameCount = 0;
-	sampleCount = 0;
-	lastPoint = Point(-1,-1);
-	lastArea = -1;
+    frameCount = 0;
+    sampleCount = 0;
+    lastPoint = Point(-1,-1);
+    lastArea = -1;
 
-	realR = 0.6;
+    realR = 0.6;
     xReal = 0;
 
-    //init windows for improves speed and fix delay in first update call
-    Mat imgSample;
+    Mat imgSample; 
     readImg(imgSample);
     imgOriginal = imgSample;
 
+    //init windows for improves speed and fix delay in first update call
     imshow("Original", imgSample); //show the original image
     #ifdef DEBUG
     imshow("Thresholded Image", imgSample); //show the thresholded image
@@ -67,8 +66,8 @@ Camera::initVariables(){
     setTrackbarPos("V radius", "Original", (int) colorsRadius[2]);
     #endif
 
-
-    background = imgSample - imgSample;
+    pMOG2 = createBackgroundSubtractorMOG2();
+    pMOG2->apply(imgSample, imgSample, 1);
 }
 
 vector<Scalar>
@@ -124,11 +123,6 @@ Camera::onMouse( int event, int x, int y){
     if( event != CV_EVENT_LBUTTONDOWN && event != CV_EVENT_RBUTTONDOWN)
         return;
 
-
-    /*Mat imgOriginal;
-    readImg(imgOriginal);*/
-
-
     if(event == CV_EVENT_LBUTTONDOWN){
         lastPoint = Point(x,y);
         selectObject(imgOriginal, object, Point(x,y), colorSelected);
@@ -167,7 +161,6 @@ Camera::showcontours(const Mat& image){
         drawContours( drawing, contours, i, color, 2, 8, hierarchy, 0, Point() );
     }
 
-    //imshow("Result window", drawing );
     return 0;
 }
 
@@ -191,7 +184,7 @@ Camera::getCenter(const vector<Point>& contour){
 }
 
 vector<Point>
-Camera::getContour(Mat image, Point p, int comparationType ){
+Camera::getContour(Mat image, Point p, int comparationType){
     int contourSelected = 0;
     double distanceSelected = numeric_limits<double>::infinity();
 
@@ -233,7 +226,7 @@ Camera::getContours(Mat image, int quant){
     Mat mask = Mat::zeros( image.size(), CV_8U ) + 255;
     Point p(0,0);
 
-    Mat d;// = Mat::zeros(image.size(), CV_8U);
+    Mat d;
 
     for(int i = 0; i < quant; i++){
         contours.push_back(getContour(image.clone(), p, FORM));
@@ -262,11 +255,11 @@ Camera::selectedColorHSV(const Mat& sourceHSV, Mat& destination, const Scalar co
     inRange(sourceHSV, range[0], range[1], imgThresholded); //Threshold the image
 
     //morphological opening (removes small objects from the foreground)
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)) );
     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 
     //morphological closing (removes small holes from the foreground)
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(8, 8)) );
     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
 
     destination = imgThresholded;
@@ -274,9 +267,6 @@ Camera::selectedColorHSV(const Mat& sourceHSV, Mat& destination, const Scalar co
 
 int
 Camera::update(){
-
-
-    //file = fopen("/dev/ttyUSB0","w");  //Opening device file
 
         frameCount++;
         lastTime = currentTimeMillis();
@@ -294,7 +284,7 @@ Camera::update(){
         Mat imgHSV;
         cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
 
-/////////////////////////////////////////////////////////////////////////////////
+        //find and draws limits
         if(limitsColors.size() > 0){
 
             Mat colorLimitSelected;
@@ -317,7 +307,7 @@ Camera::update(){
             }
         }
 
-/////////////////////////////////////////////////////////////////////////////////
+
         Mat imgThresholded;
         selectedColorHSV(imgHSV, imgThresholded, colorSelected);
         vector<Point> contour = getContour(imgThresholded.clone(), lastPoint, DISTANCE);
@@ -352,17 +342,8 @@ Camera::update(){
 
                         circle(imgLines, Point(o) , imgOriginal.cols/150, Scalar(0,255,0), -1, 4 , 0);
                         xReal = x * (realR/r.x);
-                        //sprintf(buffer, "echo %ld %f >> temp.dat", sampleCount++, xReal );
-                        //system(buffer);
-
-
-                       // fprintf(file,"%d:%d$\n",angle, angle); //Writing to the
-                        //printf("%d:%d$\n",angle, angle);
-
                     }
 
-                    //if(norm(lastPoint - center) < 5)
-                       //selectObject(imgOriginal, object, center, colorSelected);
                     drawContour( imgLines, contour, Scalar(0,0,255));
                     circle(imgLines, center, imgOriginal.cols/150, Scalar(0,0,255), -1, 4 , 0);
                 }
@@ -387,25 +368,27 @@ Camera::update(){
         double correctFrameTime =  1/cap->get(CV_CAP_PROP_FPS);
         int key = (correctFrameTime*1000 -  frameDuration) > 1 ?  waitKey( correctFrameTime * 1000 - frameDuration) : waitKey(1);
 
-        if ( key == 27)
-        {
+        if(key == 27){
             cout << "esc key is pressed by user" << endl;
-            return 0;//break;
+            return 0;
         }
-        else if (key == 32)
-        {
+        else if (key == 32){
             waitKey(0);
-          // return 0;// break;
         }
         else if(key == 'b'){
-            //capture and save background
-            //cout<<CV_8UC3<<endl;
-            //cap->read(background);
-            //cout<<imgOriginal.type()<<endl;
+            updateBackgroundModel();
         }
 
+        #ifdef DEBUG_BACKGROUND
+        Mat unbackgrounded;
+        readImg(unbackgrounded, true, -1);
+        erode(unbackgrounded, unbackgrounded, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)) );
+        dilate( unbackgrounded, unbackgrounded, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)) );
+        vector<Point> backContour = getContour(unbackgrounded & imgThresholded, lastPoint, DISTANCE);
+        drawContour( imgOriginal, backContour, Scalar(0,255,0));
+        imshow("background", unbackgrounded);
+        #endif
 
-        //cout<<"FPS: "<<((double) 1000/frameDuration)<<endl;
         frameDuration = currentTimeMillis() - lastTime;
 
         return 1;
@@ -442,26 +425,18 @@ Camera::isLimitsSelected(){
 }
 
 bool
-Camera::readImg(Mat& mat, bool removeBackground){
+Camera::readImg(Mat& mat, bool removeBackground, double rate){
     bool success = cap->read(mat);
 
     if(removeBackground && success)
-        mat = mat - background;
-
-   // cout << background << endl;
+        pMOG2->apply(mat, mat, rate);
 
     return success;
 }
 
-bool
-Camera::removeBackground(Mat& img, const Mat& background){
-    int limit = img.rows * img.cols * img.channels();
-
-    uchar* ptr = reinterpret_cast<uchar*>(img.data);
-    for (int i = 0; i < limit; i++, ptr++)
-    {
-
-        //*ptr = table[*ptr];
-    }
-    return true;
+void
+Camera::updateBackgroundModel(double rate){
+    Mat img;
+    cap->read(img);
+    pMOG2->apply(img, img, rate);
 }
