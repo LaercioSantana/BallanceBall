@@ -50,6 +50,9 @@ Camera::initVariables(){
     realR = 0.6;
     xReal = 0;
 
+    positionXInfo = 0.0;
+    fpsInfo = 0.0;
+
     Mat imgSample; 
     readImg(imgSample);
     imgOriginal = imgSample;
@@ -279,7 +282,7 @@ Camera::update(){
             return 0;//break;
         }
 
-        imgLines = Mat::zeros( imgOriginal.size(), CV_8UC3 );
+        imgLines = imgOriginal.clone();
 
         Mat imgHSV;
         cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
@@ -336,9 +339,6 @@ Camera::update(){
 
                         //write
                         Point r = lastPointLimits[1] - lastPointLimits[0];
-                        char str[30];
-                        sprintf(str,"x: %0.3f m", x * (realR/r.x));
-                        putText(imgLines, str, center - Point(100,70), FONT_HERSHEY_SIMPLEX, 1,  Scalar(0,0,255), 3);
 
                         circle(imgLines, Point(o) , imgOriginal.cols/150, Scalar(0,255,0), -1, 4 , 0);
                         xReal = x * (realR/r.x);
@@ -355,12 +355,15 @@ Camera::update(){
 #ifdef DEBUG
         imshow("Thresholded Image", imgThresholded); //show the thresholded image
 #endif
-        char str[10];
-        sprintf(str,"FPS: %0.1f ", (double) 1000/frameDuration);
-        putText(imgLines, str, Point(50,50), FONT_HERSHEY_SIMPLEX, 1,  Scalar(255,0,0), 3);
 
-        imgOriginal = imgOriginal + imgLines;
-        imshow("Original", imgOriginal); //show the original image
+        if(frameCount % 3 == 0){
+            positionXInfo = xReal;
+            fpsInfo = (double) 1000/frameDuration;
+        }
+        drawInfo(imgLines, fpsInfo, positionXInfo);
+
+        // imgOriginal = imgOriginal + imgLines;
+        imshow("Original", imgLines); //show the original image
         setMouseCallback("Original", onMouseStatic, this );
 
         //force fps
@@ -392,6 +395,18 @@ Camera::update(){
         frameDuration = currentTimeMillis() - lastTime;
 
         return 1;
+}
+
+void
+Camera::drawInfo(Mat& img, double fps, double positionX){
+    //draw fps
+    char str[30];
+    sprintf(str,"FPS: %0.1lf ", fps);
+    putText(img, str, Point(50,50), FONT_HERSHEY_SIMPLEX, 1,  Scalar(255,0,0), 3);
+
+    //draw position
+    sprintf(str,"x: %0.3lf m", positionX);
+    putText(img, str, Point(50,50) + Point(170,0), FONT_HERSHEY_SIMPLEX, 1,  Scalar(0,0,255), 3);
 }
 
 void

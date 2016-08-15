@@ -66,6 +66,9 @@ private:
 
 	Ptr<BackgroundSubtractor> pMOG2;
 
+	double positionXInfo;
+	double fpsInfo;
+
 	void initVariables();
 	vector<Scalar> getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius);
 	void setColorByPixel(Vec3b pixHSV, Scalar& color);
@@ -83,5 +86,6 @@ private:
 	bool readImg(Mat& mat, bool removeBackground=false, double rate=0);
 	bool removeBackground(Mat& img, const Mat& background);
 	void updateBackgroundModel(double rate=1);
+	void drawInfo(Mat& img, double fps, double positionX);
 };
 #endif
