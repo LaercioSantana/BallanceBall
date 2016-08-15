@@ -18,23 +18,26 @@ Serial::Serial(const string device, const string mode):
 
 Serial::~Serial(){
 	fclose(serial);
-	cout<<"close serial"<<endl;
 }
 
-void
+int
 Serial::write(const string format, ...){
 	va_list ap;
 	va_start (ap, format.c_str());
-	vfprintf(serial,format.c_str(), ap);
+	int result = vfprintf(serial,format.c_str(), ap);
 	va_end (ap);
+
+	return result;
 }
 
-void
+int
 Serial::read(const string format, ...){
 	va_list ap;
 	va_start (ap, format.c_str());
-	vfscanf(serial,format.c_str(), ap);
+	int result = vfscanf(serial,format.c_str(), ap);
 	va_end (ap);
+
+	return result;
 }
 
 void
@@ -50,4 +53,9 @@ Serial::getFail(){
 string
 Serial::getPath(){
 	return path;
+}
+
+int
+Serial::seek(int offset, int origin){
+	return fseek(serial, offset, origin);
 }

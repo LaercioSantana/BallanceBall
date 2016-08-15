@@ -12,11 +12,12 @@ public:
 	Serial(const string device);
 	Serial(const string device, const string mode);
 	~Serial();
-	void write(const string msg, ...);
-	void read(const string format, ...);
+	int write(const string msg, ...);
+	int read(const string format, ...);
 	void fflush();
 	bool getFail();
 	string getPath();
+	int seek(int offset, int origin);
 	FILE *serial;
 private:
 	bool fail;
