@@ -19,8 +19,8 @@ public:
 	void setPIDValues(vector<double> values);
 	void setColorSelected(vector<int> colorSelected);
 	vector<int> getColorSelected();
-	void setColorLimits(vector<vector<int> > colorsLimits );
-	vector<vector<int> > getColorLimits();
+	void setColorsLimits(vector<vector<int> > colorsLimits );
+	vector<vector<int> > getColorsLimits();
 private:
 	string configFile;
 

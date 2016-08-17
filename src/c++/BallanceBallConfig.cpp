@@ -20,7 +20,7 @@ BallanceBallConfig::read(){
 		else if(strcmp(s, "PID") == 0){
 			file.read("%lf %lf %lf", &this->pidValues[0], &this->pidValues[1], &this->pidValues[2]);
 		}
-		else if(strcmp(s, "COLOR_SELECTD") == 0){
+		else if(strcmp(s, "COLOR_SELECTED") == 0){
 			file.read("%d %d %d", &this->colorSelected[0], &this->colorSelected[1], &this->colorSelected[2]);
 		}
 		else if(strcmp(s, "COLORS_LIMITS") == 0){
@@ -37,7 +37,7 @@ BallanceBallConfig::write(){
 
 	file.write("INPUT %g \n", input);
 	file.write("PID %g %g %g \n", this->pidValues[0], this->pidValues[1], this->pidValues[2]);
-	file.write("COLOR_SELECTD %d %d %d \n", this->colorSelected[0], this->colorSelected[1], this->colorSelected[2]);
+	file.write("COLOR_SELECTED %d %d %d \n", this->colorSelected[0], this->colorSelected[1], this->colorSelected[2]);
 	file.write("COLORS_LIMITS %d %d %d ", this->colorsLimits[0][0], this->colorsLimits[0][1], this->colorsLimits[0][2]);
 	file.write("%d %d %d \n", this->colorsLimits[1][0], this->colorsLimits[1][1], this->colorsLimits[1][2]);
 }
@@ -73,11 +73,11 @@ BallanceBallConfig::getColorSelected(){
 }
 
 void
-BallanceBallConfig::setColorLimits(vector<vector<int> > colorsLimits ){
+BallanceBallConfig::setColorsLimits(vector<vector<int> > colorsLimits ){
 	this->colorsLimits = colorsLimits;
 }
 
 vector<vector<int> >
-BallanceBallConfig::getColorLimits(){
+BallanceBallConfig::getColorsLimits(){
 	return colorsLimits;
 }
