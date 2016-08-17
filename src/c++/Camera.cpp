@@ -455,3 +455,13 @@ Camera::updateBackgroundModel(double rate){
     cap->read(img);
     pMOG2->apply(img, img, rate);
 }
+
+Scalar
+Camera::getColorSelected(){
+    return colorSelected;
+}
+
+vector<Scalar>
+Camera::getColorsLimits(){
+    return limitsColors;
+}

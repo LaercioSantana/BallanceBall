@@ -36,6 +36,8 @@ public:
 	int update();
 	bool isLimitsSelected();
 	static void onTrackDebug(int p, void* data);
+	Scalar getColorSelected();
+	vector<Scalar> getColorsLimits();
 private:
 	VideoCapture *cap; //capture the video from
 
