@@ -16,6 +16,7 @@ SOURCES = ./Camera.cpp \
 		  ./CloseLoop.cpp\
 		  ./ParallelSystem.cpp\
 		  ./PID.cpp\
+		  ./BallanceBallConfig.cpp\
 
 OBJECTS_PATH = ./obj
 OBJECTS_TEMP = $(SOURCES:./%=$(OBJECTS_PATH)/%)
