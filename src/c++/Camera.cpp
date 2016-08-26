@@ -442,7 +442,7 @@ double Camera::getPosition(){
 
 bool
 Camera::isLimitsSelected(){
-    return lastPointLimits.size() >= 2 && rightButtonCliks >= 1;
+    return lastPointLimits.size() >= 2 && rightButtonCliks >= 2;
 }
 
 bool
@@ -483,7 +483,8 @@ Camera::setColorSelected(Scalar color){
 void
 Camera::setColorsLimits(vector<Scalar> colors){
     cout << "size: " << colors.size() << endl;
-    for(int i = 0; i < 2; i++){
+    int i;
+    for(i = 0; i < 2; i++){
         if(isHSVColor(colors[i])){
             if(limitsColors.size() <= i)
                 limitsColors.push_back(colors[i]);
