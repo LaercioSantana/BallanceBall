@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <cstdio>
+#include <stdexcept>
 
 #include "Util.hpp"
 
@@ -38,6 +39,8 @@ public:
 	static void onTrackDebug(int p, void* data);
 	Scalar getColorSelected();
 	vector<Scalar> getColorsLimits();
+	void setColorSelected(Scalar color);
+	void setColorsLimits(vector<Scalar> colors);
 private:
 	VideoCapture *cap; //capture the video from
 
@@ -55,6 +58,7 @@ private:
 	//for comparation
 	Point lastPoint;
 	vector<Point> lastPointLimits;
+	int rightButtonCliks;
 	double lastArea;
 	vector<Point> object;
 
@@ -89,5 +93,6 @@ private:
 	bool removeBackground(Mat& img, const Mat& background);
 	void updateBackgroundModel(double rate=1);
 	void drawInfo(Mat& img, double fps, double positionX);
+	bool isHSVColor(Scalar color);
 };
 #endif

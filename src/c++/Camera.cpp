@@ -46,6 +46,11 @@ Camera::initVariables(){
     sampleCount = 0;
     lastPoint = Point(-1,-1);
     lastArea = -1;
+    lastPointLimits.push_back(Point(-1, -1));
+    lastPointLimits.push_back(Point(-1, -1));
+    limitsColors.push_back(Scalar(0,0,0));
+    limitsColors.push_back(Scalar(0,0,0));
+    rightButtonCliks = 0;
 
     realR = 0.6;
     xReal = 0;
@@ -131,11 +136,13 @@ Camera::onMouse( int event, int x, int y){
         selectObject(imgOriginal, object, Point(x,y), colorSelected);
     }
     else if(event == CV_EVENT_RBUTTONDOWN){
+        rightButtonCliks++;
         vector<Point> limit;
-        lastPointLimits.push_back(Point(x,y));
+        lastPointLimits[rightButtonCliks % 2] = Point(x,y);
         Scalar color;
         selectObject(imgOriginal, limit, Point(x,y), color);
-        limitsColors.push_back(color);
+        limitsColors[rightButtonCliks % 2] = color;
+        cout << rightButtonCliks %2 << endl;
     }
 }
 
@@ -296,7 +303,6 @@ Camera::update(){
             vector<Point> limitsNULL;
             double radius = imgOriginal.size().width/15;
             for(int i = 0; i < limitsColors.size() && i < 2; i++){
-
                 selectedColorHSV(imgHSV, colorLimitSelected, limitsColors[i]);
                 contour = getContour(colorLimitSelected, lastPointLimits[i], DISTANCE);
                 center = getCenter(contour);
@@ -436,7 +442,7 @@ double Camera::getPosition(){
 
 bool
 Camera::isLimitsSelected(){
-    return lastPointLimits.size() >= 2;
+    return lastPointLimits.size() >= 2 && rightButtonCliks >= 1;
 }
 
 bool
@@ -464,4 +470,35 @@ Camera::getColorSelected(){
 vector<Scalar>
 Camera::getColorsLimits(){
     return limitsColors;
+}
+
+void
+Camera::setColorSelected(Scalar color){
+    if(isHSVColor(color))
+        colorSelected = color;
+    else
+        throw invalid_argument( "argument color not is a HVS color" );
+}
+
+void
+Camera::setColorsLimits(vector<Scalar> colors){
+    cout << "size: " << colors.size() << endl;
+    for(int i = 0; i < 2; i++){
+        if(isHSVColor(colors[i])){
+            if(limitsColors.size() <= i)
+                limitsColors.push_back(colors[i]);
+            else
+                limitsColors[i] = colors[i];
+        }
+        else
+            throw invalid_argument( "argument color not is a HVS color" );
+    }
+
+    if(i == 2)
+        rightButtonCliks += 2;
+}
+
+bool
+Camera::isHSVColor(Scalar color){
+    return color[0] < 180 && color[0] > -1 && color[1] < 256 && color[1] > -1 && color[2] < 256 && color[2] > -1;
 }
