@@ -1,7 +1,7 @@
 CC = g++
 OPENCV_LIB = `pkg-config --cflags --libs opencv`
 OTHER_LIBS = -larmadillo
-CFLAGS = -w -g -O0 -std=c++11
+CFLAGS = -w -O3 -std=c++11
 EXECUTABLE = ./bin/app
 MAIN = ./main.cpp
 SOURCES_PATH = ./src/c++
