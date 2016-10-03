@@ -16,8 +16,8 @@ public:
 	int getMaxAngle();
 	void setMinAngle(int value);
 	int getMinAngle();
-private:
 	Camera camera;
+private:
 	Serial device;
 	int originAngle;
 	int maxAngle;

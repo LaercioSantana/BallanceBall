@@ -1,4 +1,5 @@
 #include "Camera.hpp"
+#define DEBUG
 
 Camera::Camera(const string pathVideo){
 
@@ -52,8 +53,9 @@ Camera::initVariables(){
     limitsColors.push_back(Scalar(0,0,0));
     rightButtonCliks = 0;
 
-    realR = 0.6;
+    realR = 0.46;
     xReal = 0;
+    reference = 0.0;
 
     positionXInfo = 0.0;
     fpsInfo = 0.0;
@@ -335,7 +337,7 @@ Camera::update(){
 
                     if(isLimitsSelected()){
                         Mat o, rotation;
-                        getNewCoor(lastPointLimits[0], lastPointLimits[1], o, rotation);
+                        getNewCoor(lastPointLimits[0], lastPointLimits[1], o, rotation);//get new origin and new rotation
 
                         Mat pnew = (Mat_<int>(2,1) << center.x, center.y);
                         pnew = (pnew - o);
@@ -348,8 +350,18 @@ Camera::update(){
 
                         circle(imgLines, Point(o) , imgOriginal.cols/150, Scalar(0,255,0), -1, 4 , 0);
                         xReal = x * (realR/r.x);
-                    }
 
+                        //draw reference point
+                        cout << "ref2: "<< this->reference << endl;
+                        Mat distanceToOrigin = (Mat_<int>(2,1) << (int) (reference * (r.x/realR) ), 0);//a vector with length equal to reference distance
+                        distanceToOrigin.convertTo(distanceToOrigin, CV_64F);
+                        distanceToOrigin = rotation * distanceToOrigin;//rotate to new rotation from coords
+                        distanceToOrigin.convertTo(distanceToOrigin, CV_32S);
+                        distanceToOrigin.at<int>(1,0) = -distanceToOrigin.at<int>(1,0);
+                        distanceToOrigin = distanceToOrigin + o;//translate vector distance to origin
+
+                        circle(imgLines, Point(distanceToOrigin) , imgOriginal.cols/150, Scalar(0,0,255), -1, 4 , 0);
+                    }
                     drawContour( imgLines, contour, Scalar(0,0,255));
                     circle(imgLines, center, imgOriginal.cols/150, Scalar(0,0,255), -1, 4 , 0);
                 }
@@ -502,4 +514,10 @@ Camera::setColorsLimits(vector<Scalar> colors){
 bool
 Camera::isHSVColor(Scalar color){
     return color[0] < 180 && color[0] > -1 && color[1] < 256 && color[1] > -1 && color[2] < 256 && color[2] > -1;
+}
+
+void
+Camera::setReference(double x){
+    cout << "ref1: "<< reference << endl;
+    reference = x;
 }

@@ -41,6 +41,7 @@ public:
 	vector<Scalar> getColorsLimits();
 	void setColorSelected(Scalar color);
 	void setColorsLimits(vector<Scalar> colors);
+	void setReference(double x);
 private:
 	VideoCapture *cap; //capture the video from
 
@@ -74,6 +75,8 @@ private:
 
 	double positionXInfo;
 	double fpsInfo;
+
+	double reference;
 
 	void initVariables();
 	vector<Scalar> getColorRangeHSV(const Scalar& color, const Scalar& colorsRadius);
